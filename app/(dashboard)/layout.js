@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
+import Footer from '@/components/Footer';
 import Loading from '@/components/Loading';
 
 const TITLES = [
@@ -39,7 +40,8 @@ export default function DashboardLayout({ children }) {
       <Sidebar />
       <div className="main">
         <Topbar title={titleFor(pathname)} />
-        <div className="content">{children}</div>
+        <div className="content" style={{ flex: 1 }}>{children}</div>
+        <Footer />
       </div>
     </div>
   );

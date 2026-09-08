@@ -65,9 +65,12 @@ input, button, select, textarea { font-family: inherit; font-size: inherit; }
 .sidebar-foot { margin-top: auto; padding: 14px 12px 4px; border-top: 1px solid rgba(255,255,255,.14); font-size: 11px; color: rgba(255,255,255,.45); line-height: 1.5; }
 
 .main { flex: 1; margin-left: var(--sidebar-w); display: flex; flex-direction: column; min-width: 0; }
-.topbar { height: 72px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; position: sticky; top: 0; z-index: 10; }
-.topbar-title { font-size: 20px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
-.topbar-user { display: flex; align-items: center; gap: 14px; }
+.topbar { height: 72px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 24px; padding: 0 30px; position: sticky; top: 0; z-index: 10; }
+.topbar-title { font-size: 20px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; flex: 0 0 auto; }
+.topbar-search { flex: 1; max-width: 360px; display: none; }
+.topbar-search .input { height: 38px; background: var(--surface-alt); }
+@media (min-width: 860px) { .topbar-search { display: block; } }
+.topbar-user { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; margin-left: auto; }
 .icon-btn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-alt); display: grid; place-items: center; color: var(--text-muted); cursor: pointer; transition: background .15s, color .15s; position: relative; }
 .icon-btn:hover { background: var(--azure-bg); color: var(--azure); }
 .icon-dot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--coral); border: 1.5px solid #fff; }
@@ -204,3 +207,53 @@ table.tbl { width: 100%; border-collapse: collapse; }
 .def-list dd { margin: 0; font-weight: 700; color: var(--ink); }
 .section-gap { margin-top: 22px; }
 .inline-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ============ Login (split-screen bancaire) ============ */
+.auth-shell { min-height: 100vh; display: flex; }
+.auth-brand { flex: 1.15; position: relative; overflow: hidden; background: var(--grad-brand); display: flex; align-items: center; padding: 60px; }
+.auth-brand-glow { position: absolute; width: 520px; height: 520px; border-radius: 50%; background: radial-gradient(circle, rgba(51,207,242,.5) 0%, rgba(51,207,242,0) 70%); top: -200px; right: -160px; }
+.auth-brand-glow2 { position: absolute; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(51,207,242,.28) 0%, rgba(51,207,242,0) 70%); bottom: -180px; left: -140px; }
+.auth-brand-inner { position: relative; z-index: 1; max-width: 440px; }
+.auth-brand-mark { width: 62px; height: 62px; border-radius: 17px; background: rgba(255,255,255,.14); backdrop-filter: blur(6px); display: grid; place-items: center; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.25); margin-bottom: 22px; }
+.auth-brand-name { font-size: 26px; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
+.auth-brand-tagline { font-size: 14px; color: rgba(255,255,255,.68); margin-top: 8px; line-height: 1.5; max-width: 360px; }
+.auth-trust { margin-top: 42px; display: flex; flex-direction: column; gap: 20px; }
+.auth-trust-item { display: flex; align-items: flex-start; gap: 13px; }
+.auth-trust-ico { width: 36px; height: 36px; border-radius: 11px; background: rgba(255,255,255,.14); display: grid; place-items: center; color: #fff; flex-shrink: 0; }
+.auth-trust-title { font-size: 13.5px; font-weight: 700; color: #fff; }
+.auth-trust-sub { font-size: 12px; color: rgba(255,255,255,.6); margin-top: 2px; }
+.auth-brand-foot { margin-top: 56px; display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: rgba(255,255,255,.45); }
+
+.auth-panel { flex: 1; background: var(--surface); display: flex; align-items: center; justify-content: center; padding: 40px; }
+.auth-form-wrap { width: 100%; max-width: 380px; }
+.auth-form-head { margin-bottom: 28px; }
+.auth-form-title { font-size: 24px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+.auth-form-sub { font-size: 13.5px; color: var(--text-muted); margin-top: 4px; }
+.input-ico-wrap { position: relative; }
+.input-ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-faint); display: grid; place-items: center; pointer-events: none; }
+.input-ico-pad { padding-left: 42px; }
+.input-ico-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; color: var(--text-faint); cursor: pointer; display: grid; place-items: center; }
+.input-ico-btn:hover { background: var(--surface-alt); color: var(--text-muted); }
+.auth-form-note { font-size: 12.5px; color: var(--text-muted); text-align: center; margin-top: 18px; }
+.auth-form-security { font-size: 11px; color: var(--text-faint); text-align: center; margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+@media (max-width: 880px) { .auth-brand { display: none; } .auth-panel { flex: 1 1 100%; } }
+
+/* ============ Footer (back-office) ============ */
+.app-footer { border-top: 1px solid var(--border); background: var(--surface); padding: 22px 30px; margin-top: 8px; }
+.app-footer-top { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.app-footer-brand { display: flex; align-items: center; gap: 10px; }
+.app-footer-logo { width: 30px; height: 30px; border-radius: 9px; background: var(--grad-brand-soft); display: grid; place-items: center; flex-shrink: 0; }
+.app-footer-name { font-size: 13px; font-weight: 800; color: var(--ink); }
+.app-footer-sub { font-size: 11.5px; color: var(--text-faint); margin-top: 1px; max-width: 320px; line-height: 1.4; }
+.app-footer-cols { display: flex; gap: 48px; flex-wrap: wrap; }
+.app-footer-col-title { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; }
+.app-footer-link { display: block; font-size: 12.5px; color: var(--text-muted); padding: 4px 0; }
+.app-footer-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 16px; }
+.app-footer-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.app-footer-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--text-muted); background: var(--surface-alt); border: 1px solid var(--border); padding: 5px 11px; border-radius: 999px; }
+.app-footer-copy { font-size: 11.5px; color: var(--text-faint); }
+
+/* ============ Gauge (jauge circulaire) ============ */
+.gauge-wrap { display: flex; flex-direction: column; align-items: center; padding: 8px 0; }
+.gauge-value { font-size: 30px; font-weight: 800; }
+.gauge-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; text-align: center; max-width: 200px; }

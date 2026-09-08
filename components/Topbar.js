@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Bell, ChevronDown, LogOut } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Search, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { initials, roleLabel } from '@/lib/format';
 
@@ -21,7 +21,14 @@ export default function Topbar({ title }) {
       <div>
         <div className="topbar-title">{title}</div>
       </div>
+      <div className="search topbar-search">
+        <span className="search-ico"><Search size={16} strokeWidth={2.2} /></span>
+        <input className="input" placeholder="Rechercher un membre, un dossier..." />
+      </div>
       <div className="topbar-user" style={{ position: 'relative' }}>
+        <button className="icon-btn" aria-label="Aide">
+          <HelpCircle size={18} strokeWidth={2.2} />
+        </button>
         <button className="icon-btn" aria-label="Notifications">
           <Bell size={18} strokeWidth={2.2} />
           <span className="icon-dot" />

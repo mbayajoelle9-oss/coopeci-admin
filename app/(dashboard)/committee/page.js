@@ -47,7 +47,7 @@ export default function CommitteePage() {
                 <span className="mono" style={{ fontWeight: 700 }}>{a.applicationNumber}</span>
                 <Badge tone={statusTone(a.status)}>{statusLabel(a.status)}</Badge>
               </div>
-              <div style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 700, marginTop: 8 }} className="tnum">{formatMoney(a.amountRequested)}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, marginTop: 8, color: 'var(--ink)' }} className="tnum">{formatMoney(a.amountRequested)}</div>
               <div className="muted" style={{ marginTop: 2 }}>{a.member ? `${a.member.firstName} ${a.member.lastName}` : '—'} · {a.duration} mois</div>
               {typeof a.score === 'number' ? <div style={{ marginTop: 8 }}><Badge tone={a.score >= 60 ? 'success' : a.score >= 40 ? 'warning' : 'danger'}>Score {a.score}/100</Badge></div> : null}
               <div className="inline-actions" style={{ marginTop: 14 }}>

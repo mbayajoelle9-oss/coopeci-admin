@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { Search, Plus } from 'lucide-react';
 import { MembersAPI, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { formatDate, statusLabel, statusTone, can } from '@/lib/format';
@@ -47,7 +48,7 @@ export default function MembersPage() {
           <div className="page-sub">Rechercher, consulter et enregistrer les membres</div>
         </div>
         {can.memberEdit(user?.role) || ['agent', 'cashier'].includes(user?.role) ? (
-          <button className="btn btn-gold" onClick={() => setShowNew(true)}>＋ Nouveau membre</button>
+          <button className="btn btn-primary" onClick={() => setShowNew(true)}><Plus size={16} /> Nouveau membre</button>
         ) : null}
       </div>
 
@@ -55,7 +56,7 @@ export default function MembersPage() {
         <div className="card-pad" style={{ paddingBottom: 12 }}>
           <div className="row between" style={{ gap: 14, flexWrap: 'wrap' }}>
             <div className="search" style={{ flex: 1, minWidth: 240 }}>
-              <span className="search-ico">⌕</span>
+              <span className="search-ico"><Search size={16} strokeWidth={2.2} /></span>
               <input className="input" placeholder="Nom, téléphone ou N° membre" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <div className="chips">

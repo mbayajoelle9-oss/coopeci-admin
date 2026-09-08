@@ -1,13 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, PieChart, Pie } from 'recharts';
+import { Eye, EyeOff, Users, PiggyBank, Landmark, ShieldAlert } from 'lucide-react';
 import { ReportAPI, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { formatMoney, statusLabel, can } from '@/lib/format';
-import StatCard from '@/components/StatCard';
+import QuickStat from '@/components/QuickStat';
 import Loading from '@/components/Loading';
 
-const COLORS = { active: '#137A4B', in_arrears: '#B23B32', completed: '#22406A', pending_disbursement: '#B8860B', disbursed: '#22406A' };
+const COLORS = { active: '#14B87F', in_arrears: '#F1503D', completed: '#2450E8', pending_disbursement: '#F2A93B', disbursed: '#2450E8' };
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export default function DashboardPage() {
   const [par, setPar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
+  const [hide, setHide] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -37,6 +39,7 @@ export default function DashboardPage() {
   }));
   const totalCredits = creditsByStatus.reduce((s, c) => s + c.count, 0);
   const outstanding = creditsByStatus.filter((c) => ['active', 'in_arrears'].includes(c.key)).reduce((s, c) => s + (c.amount || 0), 0);
+  const mask = (v) => (hide ? '••••••' : v);
 
   return (
     <div>
@@ -47,11 +50,25 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-4">
-        <StatCard navy label="Membres" value={data?.members?.total ?? 0} foot={`${data?.members?.active ?? 0} actifs`} />
-        <StatCard label="Épargne collectée" value={formatMoney(data?.savings?.totalBalance)} foot={`${data?.savings?.count ?? 0} comptes`} />
-        <StatCard label="Encours de crédit" value={formatMoney(outstanding)} foot={`${totalCredits} crédits`} />
-        <StatCard label="Portefeuille à risque" value={par ? `${par.parRatio}%` : '—'} foot={par ? formatMoney(par.atRisk) + ' en retard' : 'accès restreint'} />
+      <div className="hero" style={{ marginBottom: 18 }}>
+        <div className="hero-glow" />
+        <div className="hero-top">
+          <div>
+            <div className="hero-label">Épargne collectée</div>
+            <div className="hero-value tnum">{mask(formatMoney(data?.savings?.totalBalance))}</div>
+            <div className="hero-foot">{data?.savings?.count ?? 0} comptes actifs · {data?.members?.total ?? 0} membres</div>
+          </div>
+          <button className="eye-btn" onClick={() => setHide((h) => !h)} aria-label="Masquer les montants">
+            {hide ? <EyeOff size={17} /> : <Eye size={17} />}
+          </button>
+        </div>
+      </div>
+
+      <div className="qstats" style={{ marginBottom: 18 }}>
+        <QuickStat icon={Users} tone="azure" label="Membres actifs" value={data?.members?.active ?? 0} />
+        <QuickStat icon={PiggyBank} tone="mint" label="Épargne" value={mask(formatMoney(data?.savings?.totalBalance))} />
+        <QuickStat icon={Landmark} tone="amber" label="Encours de crédit" value={mask(formatMoney(outstanding))} />
+        <QuickStat icon={ShieldAlert} tone="coral" label="Portefeuille à risque" value={par ? `${par.parRatio}%` : '—'} />
       </div>
 
       <div className="grid grid-2 section-gap">
@@ -63,11 +80,11 @@ export default function DashboardPage() {
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={creditsByStatus} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748B' }} allowDecimals={false} />
-                  <Tooltip formatter={(v, n) => n === 'count' ? [v, 'Nombre'] : [formatMoney(v), 'Montant']} />
-                  <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                    {creditsByStatus.map((c) => <Cell key={c.key} fill={COLORS[c.key] || '#22406A'} />)}
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#626C93' }} axisLine={{ stroke: '#EBEFF8' }} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#626C93' }} allowDecimals={false} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v, n) => n === 'count' ? [v, 'Nombre'] : [formatMoney(v), 'Montant']} contentStyle={{ borderRadius: 12, border: '1px solid #EBEFF8', boxShadow: '0 8px 24px rgba(23,31,107,.12)' }} />
+                  <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                    {creditsByStatus.map((c) => <Cell key={c.key} fill={COLORS[c.key] || '#2450E8'} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -85,18 +102,18 @@ export default function DashboardPage() {
                 <PieChart>
                   <Pie
                     data={[
-                      { name: 'Sain', value: Math.max(outstanding - (par?.atRisk || 0), 0), fill: '#137A4B' },
-                      { name: 'En retard', value: par?.atRisk || 0, fill: '#B23B32' },
+                      { name: 'Sain', value: Math.max(outstanding - (par?.atRisk || 0), 0), fill: '#14B87F' },
+                      { name: 'En retard', value: par?.atRisk || 0, fill: '#F1503D' },
                     ]}
-                    dataKey="value" nameKey="name" innerRadius={64} outerRadius={100} paddingAngle={2}
+                    dataKey="value" nameKey="name" innerRadius={68} outerRadius={100} paddingAngle={3} cornerRadius={6}
                   />
-                  <Tooltip formatter={(v) => formatMoney(v)} />
+                  <Tooltip formatter={(v) => formatMoney(v)} contentStyle={{ borderRadius: 12, border: '1px solid #EBEFF8', boxShadow: '0 8px 24px rgba(23,31,107,.12)' }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
             <div className="row gap" style={{ justifyContent: 'center', marginTop: 8, gap: 20 }}>
-              <span className="row gap" style={{ gap: 6 }}><i style={{ width: 10, height: 10, borderRadius: 2, background: '#137A4B', display: 'inline-block' }} /> <span className="muted" style={{ fontSize: 12.5 }}>Sain</span></span>
-              <span className="row gap" style={{ gap: 6 }}><i style={{ width: 10, height: 10, borderRadius: 2, background: '#B23B32', display: 'inline-block' }} /> <span className="muted" style={{ fontSize: 12.5 }}>En retard</span></span>
+              <span className="row gap" style={{ gap: 6 }}><i style={{ width: 10, height: 10, borderRadius: 3, background: '#14B87F', display: 'inline-block' }} /> <span className="muted" style={{ fontSize: 12.5 }}>Sain</span></span>
+              <span className="row gap" style={{ gap: 6 }}><i style={{ width: 10, height: 10, borderRadius: 3, background: '#F1503D', display: 'inline-block' }} /> <span className="muted" style={{ fontSize: 12.5 }}>En retard</span></span>
             </div>
           </div>
         </div>

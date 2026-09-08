@@ -80,7 +80,7 @@ export default function MemberDetailPage() {
               <Badge tone="info">{ACCOUNT_LABELS[a.type] || a.type}</Badge>
               <span className="muted mono" style={{ fontSize: 12 }}>{a.accountNumber}</span>
             </div>
-            <div className="tnum" style={{ fontFamily: 'var(--serif)', fontSize: 25, fontWeight: 700, marginTop: 10 }}>{formatMoney(a.balance, a.currency)}</div>
+            <div className="tnum" style={{ fontSize: 25, fontWeight: 800, marginTop: 10, color: 'var(--ink)' }}>{formatMoney(a.balance, a.currency)}</div>
             <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>Disponible : {formatMoney(Math.max((a.balance || 0) - (a.blockedBalance || 0), 0), a.currency)}</div>
           </div>
         ))}
@@ -98,7 +98,7 @@ export default function MemberDetailPage() {
                 {history.map((t) => (
                   <tr key={t._id}>
                     <td style={{ fontWeight: 600 }}>{trxLabel(t.type)}</td>
-                    <td className="mono" style={{ color: isCredit(t.type) ? 'var(--success)' : 'var(--text)' }}>{isCredit(t.type) ? '+' : '−'}{formatMoney(t.amount, t.currency)}</td>
+                    <td className="mono" style={{ color: isCredit(t.type) ? 'var(--mint)' : 'var(--text)' }}>{isCredit(t.type) ? '+' : '−'}{formatMoney(t.amount, t.currency)}</td>
                     <td><Badge tone={statusTone(t.status)}>{statusLabel(t.status)}</Badge></td>
                     <td className="mono muted" style={{ fontSize: 12.5 }}>{t.reference}</td>
                     <td className="muted">{formatDate(t.createdAt, true)}</td>

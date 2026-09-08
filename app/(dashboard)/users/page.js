@@ -38,7 +38,7 @@ export default function UsersPage() {
           <div className="page-title">Utilisateurs</div>
           <div className="page-sub">Comptes du personnel et rôles</div>
         </div>
-        <button className="btn btn-gold" onClick={() => setEditing({})}>＋ Nouvel utilisateur</button>
+        <button className="btn btn-primary" onClick={() => setEditing({})}>+ Nouvel utilisateur</button>
       </div>
 
       {items.length === 0 ? (

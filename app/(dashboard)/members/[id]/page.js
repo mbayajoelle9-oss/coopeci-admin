@@ -1,0 +1,147 @@
+'use client';
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { MembersAPI, errorMessage } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
+import { formatMoney, formatDate, statusLabel, statusTone, trxLabel, isCredit, initials, can } from '@/lib/format';
+import Badge from '@/components/Badge';
+import Modal from '@/components/Modal';
+import Loading from '@/components/Loading';
+
+const ACCOUNT_LABELS = { savings: 'Épargne', fixed_deposit: 'Dépôt à terme', blocked: 'Bloqué' };
+
+export default function MemberDetailPage() {
+  const { id } = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
+  const [member, setMember] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+  const [edit, setEdit] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const [d, h] = await Promise.all([MembersAPI.detail(id), MembersAPI.history(id)]);
+      setMember(d.data.member); setAccounts(d.data.accounts || []); setHistory((h.data.data || []).slice(0, 12));
+    } catch (e) { setErr(errorMessage(e)); }
+    finally { setLoading(false); }
+  }, [id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const deactivate = async () => {
+    if (!confirm('Désactiver ce membre ? Cette action bloque son accès.')) return;
+    try { await MembersAPI.deactivate(id); load(); } catch (e) { alert(errorMessage(e)); }
+  };
+
+  if (loading) return <Loading />;
+  if (!member) return <div className="err-text">{err || 'Membre introuvable.'}</div>;
+
+  return (
+    <div>
+      <div className="row gap" style={{ marginBottom: 16 }}>
+        <button className="btn btn-ghost btn-sm" onClick={() => router.push('/members')}>← Membres</button>
+      </div>
+
+      <div className="card card-pad" style={{ marginBottom: 16 }}>
+        <div className="row between" style={{ flexWrap: 'wrap', gap: 16 }}>
+          <div className="row gap" style={{ gap: 16 }}>
+            <div className="avatar" style={{ width: 58, height: 58, fontSize: 19 }}>{initials(`${member.firstName} ${member.lastName}`)}</div>
+            <div>
+              <h2 style={{ fontSize: 21 }}>{member.firstName} {member.lastName}</h2>
+              <div className="muted mono" style={{ marginTop: 2 }}>{member.memberNumber} · {member.phone}</div>
+              <div style={{ marginTop: 8 }}><Badge tone={statusTone(member.status)}>{statusLabel(member.status)}</Badge></div>
+            </div>
+          </div>
+          {can.memberEdit(user?.role) ? (
+            <div className="inline-actions">
+              <button className="btn btn-outline btn-sm" onClick={() => setEdit(true)}>Modifier</button>
+              {member.status === 'active' ? <button className="btn btn-danger btn-sm" onClick={deactivate}>Désactiver</button> : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="def-list section-gap">
+          <dt>E-mail</dt><dd>{member.email || '—'}</dd>
+          <dt>Pièce d'identité</dt><dd>{member.nationalId || '—'}</dd>
+          <dt>Profession</dt><dd>{member.profession || '—'}</dd>
+          <dt>Revenu mensuel</dt><dd>{member.monthlyIncome ? formatMoney(member.monthlyIncome) : '—'}</dd>
+          <dt>Adresse</dt><dd>{member.address || '—'}</dd>
+          <dt>Inscrit le</dt><dd>{formatDate(member.createdAt)}</dd>
+        </div>
+      </div>
+
+      <div className="grid grid-2">
+        {accounts.map((a) => (
+          <div key={a._id} className="card card-pad">
+            <div className="row between">
+              <Badge tone="info">{ACCOUNT_LABELS[a.type] || a.type}</Badge>
+              <span className="muted mono" style={{ fontSize: 12 }}>{a.accountNumber}</span>
+            </div>
+            <div className="tnum" style={{ fontFamily: 'var(--serif)', fontSize: 25, fontWeight: 700, marginTop: 10 }}>{formatMoney(a.balance, a.currency)}</div>
+            <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>Disponible : {formatMoney(Math.max((a.balance || 0) - (a.blockedBalance || 0), 0), a.currency)}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card section-gap">
+        <div className="card-head"><div className="card-title">Dernières opérations</div></div>
+        <div className="table-wrap">
+          {history.length === 0 ? (
+            <div className="muted" style={{ padding: 24, textAlign: 'center' }}>Aucune opération.</div>
+          ) : (
+            <table className="tbl">
+              <thead><tr><th>Type</th><th>Montant</th><th>Statut</th><th>Référence</th><th>Date</th></tr></thead>
+              <tbody>
+                {history.map((t) => (
+                  <tr key={t._id}>
+                    <td style={{ fontWeight: 600 }}>{trxLabel(t.type)}</td>
+                    <td className="mono" style={{ color: isCredit(t.type) ? 'var(--success)' : 'var(--text)' }}>{isCredit(t.type) ? '+' : '−'}{formatMoney(t.amount, t.currency)}</td>
+                    <td><Badge tone={statusTone(t.status)}>{statusLabel(t.status)}</Badge></td>
+                    <td className="mono muted" style={{ fontSize: 12.5 }}>{t.reference}</td>
+                    <td className="muted">{formatDate(t.createdAt, true)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {edit ? <EditMemberModal member={member} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); load(); }} /> : null}
+    </div>
+  );
+}
+
+function EditMemberModal({ member, onClose, onSaved }) {
+  const [f, setF] = useState({ email: member.email || '', profession: member.profession || '', address: member.address || '', monthlyIncome: member.monthlyIncome || '', status: member.status });
+  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
+  const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+
+  const save = async () => {
+    setBusy(true); setErr('');
+    try {
+      await MembersAPI.update(member._id, { ...f, monthlyIncome: f.monthlyIncome ? Number(f.monthlyIncome) : undefined });
+      onSaved();
+    } catch (e) { setErr(errorMessage(e)); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <Modal title="Modifier le membre" onClose={onClose}
+      footer={<><button className="btn btn-outline" onClick={onClose}>Annuler</button><button className="btn btn-primary" onClick={save} disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button></>}>
+      <div className="field"><label className="label">E-mail</label><input className="input" value={f.email} onChange={set('email')} /></div>
+      <div className="field"><label className="label">Profession</label><input className="input" value={f.profession} onChange={set('profession')} /></div>
+      <div className="field"><label className="label">Adresse</label><input className="input" value={f.address} onChange={set('address')} /></div>
+      <div className="field"><label className="label">Revenu mensuel (CDF)</label><input className="input" value={f.monthlyIncome} onChange={(e) => setF((s) => ({ ...s, monthlyIncome: e.target.value.replace(/[^0-9]/g, '') }))} /></div>
+      <div className="field"><label className="label">Statut</label>
+        <select className="select" value={f.status} onChange={set('status')}>
+          <option value="active">Actif</option><option value="suspended">Suspendu</option><option value="pending">En attente</option><option value="closed">Clôturé</option>
+        </select>
+      </div>
+      {err ? <div className="err-text">{err}</div> : null}
+    </Modal>
+  );
+}

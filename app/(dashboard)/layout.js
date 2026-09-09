@@ -20,7 +20,7 @@ const TITLES = [
 ];
 function titleFor(path) {
   for (const [re, t] of TITLES) if (re.test(path)) return t;
-  return 'COOPECI-DC';
+  return 'COOPEC-DC';
 }
 
 export default function DashboardLayout({ children }) {

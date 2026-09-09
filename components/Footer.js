@@ -6,14 +6,9 @@ export default function Footer() {
     <footer className="app-footer">
       <div className="app-footer-top">
         <div className="app-footer-brand">
-          <div className="app-footer-logo">
-            <svg viewBox="0 0 100 100" width="16" height="16" fill="none">
-              <path d="M 52 24.3 A 27 27 0 1 0 75.5 49.2" stroke="#FFFFFF" strokeWidth="14" strokeLinecap="round"/>
-              <path d="M 81 19 L 73.5 42.5 L 65.5 30.3 Z" fill="#FFFFFF"/>
-            </svg>
-          </div>
+          <img src="/logo-icon.png" alt="COOPEC-DC" className="app-footer-logo-img" />
           <div>
-            <div className="app-footer-name">COOPECI-DC</div>
+            <div className="app-footer-name">COOPEC-DC</div>
             <div className="app-footer-sub">Coopérative d'Épargne, de Crédit et d'Investissement Debout Congolais</div>
           </div>
         </div>
@@ -34,7 +29,7 @@ export default function Footer() {
       </div>
 
       <div className="app-footer-bottom">
-        <div className="app-footer-copy">© {year} COOPECI-DC · Tous droits réservés</div>
+        <div className="app-footer-copy">© {year} COOPEC-DC · Tous droits réservés</div>
         <div className="app-footer-badges">
           <span className="app-footer-badge"><ShieldCheck size={13} /> Conforme BCC</span>
           <span className="app-footer-badge"><Lock size={13} /> Connexion chiffrée</span>

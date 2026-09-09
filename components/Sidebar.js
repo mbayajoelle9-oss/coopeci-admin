@@ -29,14 +29,9 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="sidebar-logo">
-          <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
-            <path d="M 52 24.3 A 27 27 0 1 0 75.5 49.2" stroke="#FFFFFF" strokeWidth="12" strokeLinecap="round"/>
-            <path d="M 81 19 L 73.5 42.5 L 65.5 30.3 Z" fill="#FFFFFF"/>
-          </svg>
-        </div>
+        <img src="/logo-icon.png" alt="COOPEC-DC" className="sidebar-logo-img" />
         <div>
-          <div className="sidebar-brand-name">COOPECI-DC</div>
+          <div className="sidebar-brand-name">COOPEC-DC</div>
           <div className="sidebar-brand-sub">Back-office</div>
         </div>
       </div>

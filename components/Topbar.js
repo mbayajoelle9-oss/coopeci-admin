@@ -38,7 +38,10 @@ export default function Topbar({ title }) {
             <div className="muted" style={{ fontSize: 11.5, fontWeight: 600 }}>{greeting()}</div>
             <div style={{ fontWeight: 800, fontSize: 13.5, color: 'var(--ink)' }}>{firstName || user?.name}</div>
           </div>
-          <div className="avatar">{initials(user?.name)}</div>
+          <span className="avatar-wrap">
+            <div className="avatar">{initials(user?.name)}</div>
+            <span className="avatar-status" title="Session active" />
+          </span>
           <ChevronDown size={16} className="faint" />
         </div>
         {open ? (

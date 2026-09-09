@@ -35,13 +35,8 @@ export default function LoginPage() {
         <div className="auth-brand-glow" />
         <div className="auth-brand-glow2" />
         <div className="auth-brand-inner">
-          <div className="auth-brand-mark">
-            <svg viewBox="0 0 100 100" width="30" height="30" fill="none">
-              <path d="M 52 24.3 A 27 27 0 1 0 75.5 49.2" stroke="#FFFFFF" strokeWidth="12" strokeLinecap="round"/>
-              <path d="M 81 19 L 73.5 42.5 L 65.5 30.3 Z" fill="#FFFFFF"/>
-            </svg>
-          </div>
-          <div className="auth-brand-name">COOPECI-DC</div>
+          <img src="/logo-icon.png" alt="COOPEC-DC" className="auth-brand-mark-img" />
+          <div className="auth-brand-name">COOPEC-DC</div>
           <div className="auth-brand-tagline">Coopérative d'Épargne, de Crédit et d'Investissement Debout Congolais</div>
 
           <div className="auth-trust">

@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MembersAPI, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { formatMoney, formatDate, statusLabel, statusTone, trxLabel, isCredit, initials, can } from '@/lib/format';
+import { formatMoney, formatDate, statusLabel, statusTone, trxLabel, isCredit, initials, can, formatAddress } from '@/lib/format';
 import Badge from '@/components/Badge';
 import Modal from '@/components/Modal';
 import Loading from '@/components/Loading';
@@ -68,7 +68,7 @@ export default function MemberDetailPage() {
           <dt>Pièce d'identité</dt><dd>{member.nationalId || '—'}</dd>
           <dt>Profession</dt><dd>{member.profession || '—'}</dd>
           <dt>Revenu mensuel</dt><dd>{member.monthlyIncome ? formatMoney(member.monthlyIncome) : '—'}</dd>
-          <dt>Adresse</dt><dd>{member.address || '—'}</dd>
+          <dt>Adresse</dt><dd>{formatAddress(member.address) || '—'}</dd>
           <dt>Inscrit le</dt><dd>{formatDate(member.createdAt)}</dd>
         </div>
       </div>
@@ -116,7 +116,7 @@ export default function MemberDetailPage() {
 }
 
 function EditMemberModal({ member, onClose, onSaved }) {
-  const [f, setF] = useState({ email: member.email || '', profession: member.profession || '', address: member.address || '', monthlyIncome: member.monthlyIncome || '', status: member.status });
+  const [f, setF] = useState({ email: member.email || '', profession: member.profession || '', address: formatAddress(member.address), monthlyIncome: member.monthlyIncome || '', status: member.status });
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
 

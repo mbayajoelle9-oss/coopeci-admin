@@ -20,6 +20,7 @@ export default function MemberDetailPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [edit, setEdit] = useState(false);
+  const [pinModal, setPinModal] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -55,10 +56,11 @@ export default function MemberDetailPage() {
               <div style={{ marginTop: 8 }}><Badge tone={statusTone(member.status)}>{statusLabel(member.status)}</Badge></div>
             </div>
           </div>
-          {can.memberEdit(user?.role) ? (
+          {can.memberEdit(user?.role) || can.cashier(user?.role) ? (
             <div className="inline-actions">
-              <button className="btn btn-outline btn-sm" onClick={() => setEdit(true)}>Modifier</button>
-              {member.status === 'active' ? <button className="btn btn-danger btn-sm" onClick={deactivate}>Désactiver</button> : null}
+              {can.memberEdit(user?.role) ? <button className="btn btn-outline btn-sm" onClick={() => setEdit(true)}>Modifier</button> : null}
+              {can.cashier(user?.role) ? <button className="btn btn-outline btn-sm" onClick={() => setPinModal(true)}>Réinitialiser le PIN</button> : null}
+              {can.memberEdit(user?.role) && member.status === 'active' ? <button className="btn btn-danger btn-sm" onClick={deactivate}>Désactiver</button> : null}
             </div>
           ) : null}
         </div>
@@ -111,7 +113,43 @@ export default function MemberDetailPage() {
       </div>
 
       {edit ? <EditMemberModal member={member} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); load(); }} /> : null}
+      {pinModal ? <ResetPinModal member={member} onClose={() => setPinModal(false)} /> : null}
     </div>
+  );
+}
+
+function ResetPinModal({ member, onClose }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [tempPin, setTempPin] = useState(null);
+
+  const confirmReset = async () => {
+    setBusy(true); setErr('');
+    try {
+      const { data } = await MembersAPI.resetPin(member._id);
+      setTempPin(data.tempPin);
+    } catch (e) { setErr(errorMessage(e)); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <Modal title="Réinitialiser le code PIN" onClose={onClose}
+      footer={tempPin
+        ? <button className="btn btn-primary" onClick={onClose}>Terminé</button>
+        : <><button className="btn btn-outline" onClick={onClose}>Annuler</button><button className="btn btn-gold" onClick={confirmReset} disabled={busy}>{busy ? 'Génération…' : 'Générer un nouveau PIN'}</button></>}>
+      {tempPin ? (
+        <div>
+          <div className="hint" style={{ marginBottom: 10 }}>Communiquez ce code à <b>{member.firstName} {member.lastName}</b> de vive voix (guichet ou téléphone). Il ne sera plus affiché ensuite.</div>
+          <div className="tnum" style={{ fontSize: 34, fontWeight: 800, textAlign: 'center', letterSpacing: 6, background: 'var(--surface-alt)', borderRadius: 12, padding: '18px 0', color: 'var(--ink)' }}>{tempPin}</div>
+          <div className="hint" style={{ marginTop: 10 }}>Le membre pourra le changer depuis son application une fois connecté.</div>
+        </div>
+      ) : (
+        <div>
+          <p style={{ margin: 0 }}>Un nouveau code PIN à 4 chiffres sera généré pour <b>{member.firstName} {member.lastName}</b> ({member.phone}), remplaçant l'ancien immédiatement.</p>
+          {err ? <div className="err-text" style={{ marginTop: 10 }}>{err}</div> : null}
+        </div>
+      )}
+    </Modal>
   );
 }
 

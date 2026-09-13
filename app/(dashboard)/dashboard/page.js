@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, PieChart, Pie } from 'recharts';
-import { Eye, EyeOff, Users, PiggyBank, Landmark, ShieldAlert, Wallet, TrendingUp, Scale, PieChart as PieIcon, BarChart3, Activity } from 'lucide-react';
+import { Eye, EyeOff, Users, PiggyBank, Landmark, ShieldAlert, Wallet, TrendingUp, Scale, PieChart as PieIcon, BarChart3, Activity, MapPin, UserCheck } from 'lucide-react';
 import { ReportAPI, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { formatMoney, statusLabel, can } from '@/lib/format';
@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [par, setPar] = useState(null);
+  const [agents, setAgents] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [hide, setHide] = useState(false);
@@ -32,11 +33,13 @@ export default function DashboardPage() {
   useEffect(() => {
     (async () => {
       try {
-        const reqs = [ReportAPI.dashboard()];
-        if (can.par(user?.role)) reqs.push(ReportAPI.par());
-        const [d, p] = await Promise.all(reqs);
+        const dashP = ReportAPI.dashboard();
+        const parP = can.par(user?.role) ? ReportAPI.par() : null;
+        const agentsP = can.agentStats(user?.role) ? ReportAPI.agents() : null;
+        const [d, p, a] = await Promise.all([dashP, parP, agentsP]);
         setData(d.data.data);
         if (p) setPar(p.data.data);
+        if (a) setAgents(a.data.data);
       } catch (e) { setErr(errorMessage(e)); }
       finally { setLoading(false); }
     })();
@@ -221,6 +224,63 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {agents ? (
+        <>
+          <div className="page-head section-gap" style={{ marginBottom: 14 }}>
+            <div className="page-title" style={{ fontSize: 19 }}>Réseau d'agents terrain</div>
+          </div>
+          <div className="qstats" style={{ marginBottom: 18, gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            <QuickStat icon={UserCheck} tone="azure" label="Agents actifs" value={<CountUp value={agents.totalAgents} />} />
+            <QuickStat icon={MapPin} tone="mint" label="Communes couvertes" value={agents.byCommune.filter((c) => c._id !== 'Non renseignée').length} />
+            <QuickStat icon={MapPin} tone="amber" label="Villes couvertes" value={agents.byVille.filter((v) => v._id !== 'Non renseignée').length} />
+          </div>
+
+          <div className="grid grid-3 section-gap">
+            <div className="card">
+              <div className="card-head"><CardTitle icon={MapPin} tone="mint">Agents par commune</CardTitle></div>
+              <div className="card-pad">
+                {agents.byCommune.length === 0 ? <div className="muted" style={{ padding: 12, textAlign: 'center' }}>Aucune donnée.</div> : (
+                  <table className="tbl"><tbody>
+                    {agents.byCommune.map((c) => (
+                      <tr key={c._id}><td>{c._id}</td><td style={{ textAlign: 'right', fontWeight: 700 }}>{c.count}</td></tr>
+                    ))}
+                  </tbody></table>
+                )}
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-head"><CardTitle icon={MapPin} tone="amber">Agents par ville</CardTitle></div>
+              <div className="card-pad">
+                {agents.byVille.length === 0 ? <div className="muted" style={{ padding: 12, textAlign: 'center' }}>Aucune donnée.</div> : (
+                  <table className="tbl"><tbody>
+                    {agents.byVille.map((v) => (
+                      <tr key={v._id}><td>{v._id}</td><td style={{ textAlign: 'right', fontWeight: 700 }}>{v.count}</td></tr>
+                    ))}
+                  </tbody></table>
+                )}
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-head"><CardTitle icon={UserCheck} tone="azure">Membres enregistrés par agent</CardTitle></div>
+              <div className="card-pad">
+                {agents.byAgent.length === 0 ? <div className="muted" style={{ padding: 12, textAlign: 'center' }}>Aucun membre enregistré par un agent pour l'instant.</div> : (
+                  <table className="tbl"><tbody>
+                    {agents.byAgent.slice(0, 8).map((a) => (
+                      <tr key={a.agentId}>
+                        <td>{a.name}<div className="faint" style={{ fontSize: 11 }}>{[a.commune, a.ville].filter(Boolean).join(', ') || '—'}</div></td>
+                        <td style={{ textAlign: 'right', fontWeight: 700 }}>{a.count}</td>
+                      </tr>
+                    ))}
+                  </tbody></table>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

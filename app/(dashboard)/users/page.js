@@ -51,7 +51,13 @@ export default function UsersPage() {
               <tbody>
                 {items.map((u) => (
                   <tr key={u._id}>
-                    <td><div className="row gap" style={{ gap: 10 }}><div className="avatar" style={{ width: 32, height: 32, fontSize: 11 }}>{initials(u.name)}</div><span style={{ fontWeight: 600 }}>{u.name}</span></div></td>
+                    <td><div className="row gap" style={{ gap: 10 }}>
+                      <div className="avatar" style={{ width: 32, height: 32, fontSize: 11 }}>{initials(u.name)}</div>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{u.name}</div>
+                        {u.role === 'agent' && (u.commune || u.ville) ? <div className="faint" style={{ fontSize: 11 }}>{[u.commune, u.ville].filter(Boolean).join(', ')}</div> : null}
+                      </div>
+                    </div></td>
                     <td className="muted">{u.email}</td>
                     <td><Badge tone="info">{roleLabel(u.role)}</Badge></td>
                     <td><Badge tone={u.status === 'active' || !u.status ? 'success' : 'danger'}>{u.status === 'inactive' ? 'Inactif' : 'Actif'}</Badge></td>
@@ -77,7 +83,7 @@ export default function UsersPage() {
 
 function UserModal({ editing, onClose, onDone }) {
   const isNew = !editing._id;
-  const [f, setF] = useState({ name: editing.name || '', email: editing.email || '', password: '', role: editing.role || 'agent', status: editing.status || 'active' });
+  const [f, setF] = useState({ name: editing.name || '', email: editing.email || '', password: '', role: editing.role || 'agent', status: editing.status || 'active', commune: editing.commune || '', ville: editing.ville || '' });
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
 
@@ -87,9 +93,9 @@ function UserModal({ editing, onClose, onDone }) {
     if (isNew && f.password.length < 8) { setErr('Le mot de passe doit contenir au moins 8 caractères.'); return; }
     setBusy(true);
     try {
-      if (isNew) await UsersAPI.create({ name: f.name, email: f.email, password: f.password, role: f.role });
+      if (isNew) await UsersAPI.create({ name: f.name, email: f.email, password: f.password, role: f.role, commune: f.commune, ville: f.ville });
       else {
-        const payload = { name: f.name, email: f.email, role: f.role, status: f.status };
+        const payload = { name: f.name, email: f.email, role: f.role, status: f.status, commune: f.commune, ville: f.ville };
         if (f.password) payload.password = f.password;
         await UsersAPI.update(editing._id, payload);
       }
@@ -109,6 +115,12 @@ function UserModal({ editing, onClose, onDone }) {
           {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
       </div>
+      {f.role === 'agent' ? (
+        <div className="row gap" style={{ gap: 12 }}>
+          <div className="field" style={{ flex: 1 }}><label className="label">Commune</label><input className="input" value={f.commune} onChange={set('commune')} placeholder="Ex : Ngaliema" /></div>
+          <div className="field" style={{ flex: 1 }}><label className="label">Ville</label><input className="input" value={f.ville} onChange={set('ville')} placeholder="Ex : Kinshasa" /></div>
+        </div>
+      ) : null}
       {!isNew ? (
         <div className="field"><label className="label">Statut</label>
           <select className="select" value={f.status} onChange={set('status')}><option value="active">Actif</option><option value="inactive">Inactif</option></select>

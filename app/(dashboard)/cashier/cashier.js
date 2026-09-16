@@ -20,11 +20,26 @@ export default function CashierPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const openReceipt = async (reference) => {
+    try {
+      const { data } = await TxAPI.receipt(reference);
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (e) {
+      alert("Le reçu n'a pas pu être ouvert : " + errorMessage(e));
+    }
+  };
+
   const act = async (t, approve) => {
     setBusyId(t._id);
     try {
-      if (t.type === 'deposit') await TxAPI.confirmDeposit(t.reference);
-      else await TxAPI.validateWithdrawal(t._id, approve);
+      if (t.type === 'deposit') {
+        await TxAPI.confirmDeposit(t.reference);
+        // Encaissement espèces validé : le reçu s'ouvre aussitôt, au même moment.
+        await openReceipt(t.reference);
+      } else {
+        await TxAPI.validateWithdrawal(t._id, approve);
+      }
       await load();
     } catch (e) { alert(errorMessage(e)); }
     finally { setBusyId(null); }
@@ -62,6 +77,7 @@ export default function CashierPage() {
                       <td className="muted">{formatDate(t.createdAt, true)}</td>
                       <td>
                         <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
+                          <button className="btn btn-outline btn-sm" onClick={() => openReceipt(t.reference)}>Reçu</button>
                           {isDep ? (
                             <button className="btn btn-gold btn-sm" disabled={busyId === t._id} onClick={() => act(t, true)}>Confirmer</button>
                           ) : (

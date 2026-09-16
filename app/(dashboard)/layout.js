@@ -15,6 +15,7 @@ const TITLES = [
   [/^\/credits/, 'Crédits'],
   [/^\/committee/, 'Comité de crédit'],
   [/^\/cashier/, 'Caisse'],
+  [/^\/accounting/, 'Comptabilité'],
   [/^\/users/, 'Utilisateurs'],
   [/^\/reports/, 'Rapports'],
 ];

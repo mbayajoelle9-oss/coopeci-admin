@@ -1,6 +1,6 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutGrid, FileBarChart, Users, Landmark, Scale, Wallet, Settings } from 'lucide-react';
+import { LayoutGrid, FileBarChart, Users, Landmark, Scale, Wallet, Settings, Banknote } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { can } from '@/lib/format';
 
@@ -14,6 +14,7 @@ const NAV = [
     { href: '/credits', label: 'Crédits', ico: Landmark },
     { href: '/committee', label: 'Comité', ico: Scale, gate: (r) => can.committee(r) },
     { href: '/cashier', label: 'Caisse', ico: Wallet, gate: (r) => can.cashier(r) },
+    { href: '/accounting', label: 'Comptabilité', ico: Banknote, gate: (r) => can.accounting(r) },
   ]},
   { group: 'Administration', items: [
     { href: '/users', label: 'Utilisateurs', ico: Settings, gate: (r) => can.users(r) },

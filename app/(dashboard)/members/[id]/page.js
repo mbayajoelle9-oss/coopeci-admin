@@ -59,7 +59,7 @@ export default function MemberDetailPage() {
           {can.memberEdit(user?.role) || can.cashier(user?.role) ? (
             <div className="inline-actions">
               {can.memberEdit(user?.role) ? <button className="btn btn-outline btn-sm" onClick={() => setEdit(true)}>Modifier</button> : null}
-              {can.cashier(user?.role) ? <button className="btn btn-outline btn-sm" onClick={() => setPinModal(true)}>Réinitialiser le PIN</button> : null}
+              {can.cashier(user?.role) ? <button className="btn btn-outline btn-sm" onClick={() => setPinModal(true)}>Réinitialiser le mot de passe</button> : null}
               {can.memberEdit(user?.role) && member.status === 'active' ? <button className="btn btn-danger btn-sm" onClick={deactivate}>Désactiver</button> : null}
             </div>
           ) : null}
@@ -113,34 +113,34 @@ export default function MemberDetailPage() {
       </div>
 
       {edit ? <EditMemberModal member={member} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); load(); }} /> : null}
-      {pinModal ? <ResetPinModal member={member} onClose={() => setPinModal(false)} /> : null}
+      {pinModal ? <ResetPasswordModal member={member} onClose={() => setPinModal(false)} /> : null}
     </div>
   );
 }
 
-function ResetPinModal({ member, onClose }) {
+function ResetPasswordModal({ member, onClose }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  const [tempPin, setTempPin] = useState(null);
+  const [tempPassword, setTempPassword] = useState(null);
 
   const confirmReset = async () => {
     setBusy(true); setErr('');
     try {
-      const { data } = await MembersAPI.resetPin(member._id);
-      setTempPin(data.tempPin);
+      const { data } = await MembersAPI.resetPassword(member._id);
+      setTempPassword(data.tempPassword);
     } catch (e) { setErr(errorMessage(e)); }
     finally { setBusy(false); }
   };
 
   return (
-    <Modal title="Réinitialiser le code PIN" onClose={onClose}
-      footer={tempPin
+    <Modal title="Réinitialiser le mot de passe" onClose={onClose}
+      footer={tempPassword
         ? <button className="btn btn-primary" onClick={onClose}>Terminé</button>
-        : <><button className="btn btn-outline" onClick={onClose}>Annuler</button><button className="btn btn-gold" onClick={confirmReset} disabled={busy}>{busy ? 'Génération…' : 'Générer un nouveau PIN'}</button></>}>
-      {tempPin ? (
+        : <><button className="btn btn-outline" onClick={onClose}>Annuler</button><button className="btn btn-gold" onClick={confirmReset} disabled={busy}>{busy ? 'Génération…' : 'Générer un nouveau mot de passe'}</button></>}>
+      {tempPassword ? (
         <div>
-          <div className="hint" style={{ marginBottom: 10 }}>Communiquez ce code à <b>{member.firstName} {member.lastName}</b> de vive voix (guichet ou téléphone). Il ne sera plus affiché ensuite.</div>
-          <div className="tnum" style={{ fontSize: 34, fontWeight: 800, textAlign: 'center', letterSpacing: 6, background: 'var(--surface-alt)', borderRadius: 12, padding: '18px 0', color: 'var(--ink)' }}>{tempPin}</div>
+          <div className="hint" style={{ marginBottom: 10 }}>Communiquez ce mot de passe à <b>{member.firstName} {member.lastName}</b> de vive voix (guichet ou téléphone). Il ne sera plus affiché ensuite.</div>
+          <div className="tnum" style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', letterSpacing: 4, background: 'var(--surface-alt)', borderRadius: 12, padding: '18px 0', color: 'var(--ink)' }}>{tempPassword}</div>
           <div className="hint" style={{ marginTop: 10 }}>Le membre pourra le changer depuis son application une fois connecté.</div>
         </div>
       ) : (

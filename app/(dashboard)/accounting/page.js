@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { AccountingAPI, errorMessage } from '@/lib/api';
+import { AccountingAPI, ReportAPI, ShareCapitalAPI, errorMessage } from '@/lib/api';
 import { formatMoney, formatDate } from '@/lib/format';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
@@ -190,6 +190,7 @@ function GeneralLedgerPanel() {
   return (
     <div>
       <div className="chips" style={{ marginBottom: 18 }}>
+        <button className={`chip ${subTab === 'stats' ? 'active' : ''}`} onClick={() => setSubTab('stats')}>Statistiques</button>
         <button className={`chip ${subTab === 'bilan' ? 'active' : ''}`} onClick={() => setSubTab('bilan')}>Bilan</button>
         <button className={`chip ${subTab === 'balance' ? 'active' : ''}`} onClick={() => setSubTab('balance')}>Balance générale</button>
         <button className={`chip ${subTab === 'journal' ? 'active' : ''}`} onClick={() => setSubTab('journal')}>Livre-journal</button>
@@ -202,6 +203,7 @@ function GeneralLedgerPanel() {
           une base de travail à faire valider par un expert-comptable ONEC-RDC avant toute transmission officielle via FinA.
         </p>
       </div>
+      {subTab === 'stats' ? <StatsView /> : null}
       {subTab === 'bilan' ? <BilanView /> : null}
       {subTab === 'balance' ? <TrialBalanceView /> : null}
       {subTab === 'journal' ? <JournalView /> : null}
@@ -377,6 +379,39 @@ function IncomeStatementView() {
         <div className="stat-label">Résultat (excédent) de la période</div>
         <div className="stat-value tnum">{formatMoney(data.resultat)}</div>
       </div>
+    </div>
+  );
+}
+
+function StatsView() {
+  const [dash, setDash] = useState(null);
+  const [shares, setShares] = useState(null);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    Promise.all([ReportAPI.dashboard(), ShareCapitalAPI.overview()])
+      .then(([d, s]) => { setDash(d.data.data); setShares(s.data); })
+      .catch((e) => setErr(errorMessage(e)));
+  }, []);
+
+  if (err) return <div className="err-text">{err}</div>;
+  if (!dash) return <Loading />;
+
+  const outstandingCredit = (dash.creditsByStatus || []).reduce((s, c) => s + (c.amount || 0), 0);
+
+  return (
+    <div>
+      <div className="qstats" style={{ marginBottom: 18, gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="stat navy"><div className="stat-label">Épargne totale</div><div className="stat-value tnum">{formatMoney(dash.savings?.totalBalance || 0)}</div></div>
+        <div className="stat"><div className="stat-label">Encours de crédit</div><div className="stat-value tnum">{formatMoney(outstandingCredit)}</div></div>
+        <div className="stat"><div className="stat-label">Capital (parts sociales)</div><div className="stat-value tnum">{formatMoney(shares?.grandTotal || 0)}</div></div>
+      </div>
+      <div className="qstats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="stat"><div className="stat-label">Membres actifs</div><div className="stat-value tnum">{dash.members?.active ?? '—'}</div></div>
+        <div className="stat"><div className="stat-label">Comptes d'épargne</div><div className="stat-value tnum">{dash.savings?.count ?? '—'}</div></div>
+        <div className="stat"><div className="stat-label">Sociétaires détenant des parts</div><div className="stat-value tnum">{shares?.data?.length || 0}</div></div>
+      </div>
+      <div className="hint section-gap">Statistiques calculées quotidiennement à partir des opérations réelles — reprend les indicateurs du tableau de bord et du module Parts sociales, comme prévu dans le cycle comptable (carnet → journaux → grand livre → balance → statistiques).</div>
     </div>
   );
 }

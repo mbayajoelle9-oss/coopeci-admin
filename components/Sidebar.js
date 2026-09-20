@@ -1,12 +1,13 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutGrid, FileBarChart, Users, Landmark, Scale, Wallet, Settings, Banknote } from 'lucide-react';
+import { LayoutGrid, FileBarChart, Users, Landmark, Scale, Wallet, Settings, Banknote, Coins, ShieldCheck, Sliders, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { can } from '@/lib/format';
 
 const NAV = [
   { group: 'Pilotage', items: [
     { href: '/dashboard', label: 'Tableau de bord', ico: LayoutGrid },
+    { href: '/consolidation', label: 'Consolidation', ico: LayoutDashboard, gate: (r) => can.consolidation(r) },
     { href: '/reports', label: 'Rapports', ico: FileBarChart, gate: (r) => can.par(r) },
   ]},
   { group: 'Opérations', items: [
@@ -14,10 +15,14 @@ const NAV = [
     { href: '/credits', label: 'Crédits', ico: Landmark },
     { href: '/committee', label: 'Comité', ico: Scale, gate: (r) => can.committee(r) },
     { href: '/cashier', label: 'Caisse', ico: Wallet, gate: (r) => can.cashier(r) },
+    { href: '/bank', label: 'Banque', ico: Banknote, gate: (r) => can.bank(r) },
+    { href: '/share-capital', label: 'Parts sociales', ico: Coins, gate: (r) => can.accounting(r) },
     { href: '/accounting', label: 'Comptabilité', ico: Banknote, gate: (r) => can.accounting(r) },
   ]},
   { group: 'Administration', items: [
     { href: '/users', label: 'Utilisateurs', ico: Settings, gate: (r) => can.users(r) },
+    { href: '/audit-logs', label: "Pistes d'audit", ico: ShieldCheck, gate: (r) => can.auditLogs(r) },
+    { href: '/settings', label: 'Paramétrages', ico: Sliders, gate: (r) => can.settings(r) },
   ]},
 ];
 

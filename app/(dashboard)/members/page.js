@@ -98,23 +98,41 @@ export default function MembersPage() {
 }
 
 function NewMemberModal({ onClose, onCreated }) {
-  const [f, setF] = useState({ firstName: '', lastName: '', phone: '', pin: '', email: '', nationalId: '', profession: '', monthlyIncome: '', address: '' });
+  const [f, setF] = useState({ firstName: '', lastName: '', phone: '', password: '', email: '', nationalId: '', profession: '', monthlyIncome: '', address: '' });
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [created, setCreated] = useState(null);
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
 
   const submit = async () => {
     setErr('');
-    if (!f.firstName.trim() || !f.lastName.trim() || !f.phone.trim()) { setErr('Nom, prénom et téléphone sont requis.'); return; }
+    if (!f.firstName.trim() || !f.lastName.trim() || !f.phone.trim() || !f.email.trim()) {
+      setErr('Nom, prénom, téléphone et e-mail sont requis.'); return;
+    }
     setBusy(true);
     try {
       const payload = { ...f, monthlyIncome: f.monthlyIncome ? Number(f.monthlyIncome) : undefined };
-      Object.keys(payload).forEach((k) => { if (payload[k] === '' ) delete payload[k]; });
+      Object.keys(payload).forEach((k) => { if (payload[k] === '') delete payload[k]; });
       const { data } = await MembersAPI.register(payload);
-      onCreated(data.member.id);
+      if (data.tempPassword) {
+        // Aucun mot de passe saisi : un temporaire a été généré, à communiquer au membre une seule fois.
+        setCreated({ id: data.member.id, tempPassword: data.tempPassword });
+      } else {
+        onCreated(data.member.id);
+      }
     } catch (e) { setErr(errorMessage(e)); }
     finally { setBusy(false); }
   };
+
+  if (created) {
+    return (
+      <Modal title="Membre créé" onClose={() => onCreated(created.id)}
+        footer={<button className="btn btn-primary" onClick={() => onCreated(created.id)}>Terminé</button>}>
+        <div className="hint" style={{ marginBottom: 10 }}>Aucun mot de passe n'a été saisi : communiquez ce mot de passe temporaire au membre de vive voix — il ne sera plus affiché ensuite.</div>
+        <div className="tnum" style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', letterSpacing: 4, background: 'var(--surface-alt)', borderRadius: 12, padding: '16px 0', color: 'var(--ink)' }}>{created.tempPassword}</div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal title="Enregistrer un membre" onClose={onClose}
@@ -124,8 +142,8 @@ function NewMemberModal({ onClose, onCreated }) {
         <div className="field"><label className="label">Nom *</label><input className="input" value={f.lastName} onChange={set('lastName')} /></div>
       </div>
       <div className="field"><label className="label">Téléphone *</label><input className="input" value={f.phone} onChange={set('phone')} placeholder="08XXXXXXXX" /></div>
-      <div className="field"><label className="label">Code PIN initial (optionnel)</label><input className="input" value={f.pin} onChange={(e) => setF((s) => ({ ...s, pin: e.target.value.replace(/[^0-9]/g, '') }))} maxLength={6} placeholder="4 à 6 chiffres" /><div className="hint">Le membre pourra le modifier depuis son app.</div></div>
-      <div className="field"><label className="label">E-mail</label><input className="input" value={f.email} onChange={set('email')} /></div>
+      <div className="field"><label className="label">E-mail *</label><input className="input" type="email" value={f.email} onChange={set('email')} placeholder="membre@exemple.cd" /></div>
+      <div className="field"><label className="label">Mot de passe initial (optionnel)</label><input className="input" type="text" value={f.password} onChange={set('password')} placeholder="Laisser vide pour en générer un" /><div className="hint">Si laissé vide, un mot de passe temporaire sera généré et affiché une seule fois à l'enregistrement. Le membre pourra le changer depuis son application.</div></div>
       <div className="grid grid-2" style={{ gap: 0, gridTemplateColumns: '1fr 1fr', columnGap: 14 }}>
         <div className="field"><label className="label">Pièce d'identité</label><input className="input" value={f.nationalId} onChange={set('nationalId')} /></div>
         <div className="field"><label className="label">Profession</label><input className="input" value={f.profession} onChange={set('profession')} /></div>

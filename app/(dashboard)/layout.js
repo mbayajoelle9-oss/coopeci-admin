@@ -16,6 +16,11 @@ const TITLES = [
   [/^\/committee/, 'Comité de crédit'],
   [/^\/cashier/, 'Caisse'],
   [/^\/accounting/, 'Comptabilité'],
+  [/^\/share-capital/, 'Parts sociales'],
+  [/^\/bank/, 'Banque'],
+  [/^\/consolidation/, 'Consolidation'],
+  [/^\/audit-logs/, "Pistes d'audit"],
+  [/^\/settings/, 'Paramétrages'],
   [/^\/users/, 'Utilisateurs'],
   [/^\/reports/, 'Rapports'],
 ];

@@ -13,6 +13,7 @@ const NAV = [
   { group: 'Opérations', items: [
     { href: '/members', label: 'Membres', ico: Users },
     { href: '/credits', label: 'Crédits', ico: Landmark },
+    { href: '/credit-products', label: 'Produits de crédit', ico: Landmark, gate: (r) => can.creditDecision(r) },
     { href: '/committee', label: 'Comité', ico: Scale, gate: (r) => can.committee(r) },
     { href: '/cashier', label: 'Caisse', ico: Wallet, gate: (r) => can.cashier(r) },
     { href: '/bank', label: 'Banque', ico: Banknote, gate: (r) => can.bank(r) },

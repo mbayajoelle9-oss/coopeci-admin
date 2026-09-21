@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { AccountingAPI, ReportAPI, ShareCapitalAPI, errorMessage } from '@/lib/api';
+import { AccountingAPI, ReportAPI, ShareCapitalAPI, ReconciliationAPI, errorMessage } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { formatMoney, formatDate } from '@/lib/format';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
@@ -27,6 +28,7 @@ export default function AccountingPage() {
 }
 
 function TreasuryPanel() {
+  const { user } = useAuth();
   const [pending, setPending] = useState(null);
   const [agentCash, setAgentCash] = useState(null);
   const [transfers, setTransfers] = useState([]);
@@ -45,6 +47,11 @@ function TreasuryPanel() {
     } catch (e) { setErr(errorMessage(e)); }
     finally { setLoading(false); }
   }, []);
+
+  const confirmTransfer = async (id) => {
+    try { await AccountingAPI.confirmTransfer(id); await load(); }
+    catch (e) { alert(errorMessage(e)); }
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -148,6 +155,8 @@ function TreasuryPanel() {
         )}
       </div>
 
+      <ReconciliationImport onDone={load} />
+
       <div className="card section-gap">
         <div className="card-head"><div className="card-title">Historique des virements / dépôts bancaires</div></div>
         {transfers.length === 0 ? (
@@ -155,18 +164,28 @@ function TreasuryPanel() {
         ) : (
           <div className="table-wrap">
             <table className="tbl">
-              <thead><tr><th>Date</th><th>Montant</th><th>Référence</th><th>Banque</th><th>Transactions</th><th>Enregistré par</th></tr></thead>
+              <thead><tr><th>Date</th><th>Montant</th><th>Référence</th><th>Banque</th><th>Transactions</th><th>Proposé par</th><th>Statut</th><th style={{ textAlign: 'right' }}>Action</th></tr></thead>
               <tbody>
-                {transfers.map((tr) => (
-                  <tr key={tr._id}>
-                    <td className="muted">{formatDate(tr.createdAt, true)}</td>
-                    <td className="mono" style={{ fontWeight: 600 }}>{formatMoney(tr.amount, tr.currency)}</td>
-                    <td className="mono muted" style={{ fontSize: 12.5 }}>{tr.reference}</td>
-                    <td className="muted">{tr.bankName || '—'}</td>
-                    <td className="muted">{tr.transactionCount}</td>
-                    <td className="muted">{tr.createdBy?.name || '—'}</td>
-                  </tr>
-                ))}
+                {transfers.map((tr) => {
+                  const isSelf = tr.createdBy?._id === user?.id;
+                  return (
+                    <tr key={tr._id}>
+                      <td className="muted">{formatDate(tr.createdAt, true)}</td>
+                      <td className="mono" style={{ fontWeight: 600 }}>{formatMoney(tr.amount, tr.currency)}</td>
+                      <td className="mono muted" style={{ fontSize: 12.5 }}>{tr.reference}</td>
+                      <td className="muted">{tr.bankName || '—'}</td>
+                      <td className="muted">{tr.transactionCount}</td>
+                      <td className="muted">{tr.createdBy?.name || '—'}</td>
+                      <td><Badge tone={tr.status === 'confirmed' ? 'success' : 'warning'}>{tr.status === 'confirmed' ? 'Confirmé' : 'En attente'}</Badge></td>
+                      <td style={{ textAlign: 'right' }}>
+                        {tr.status === 'pending' ? (
+                          isSelf ? <span className="faint" style={{ fontSize: 11 }}>Attend une autre personne</span>
+                            : <button className="btn btn-gold btn-sm" onClick={() => confirmTransfer(tr._id)}>Confirmer</button>
+                        ) : <span className="faint" style={{ fontSize: 11 }}>{tr.confirmedBy?.name}</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -412,6 +431,86 @@ function StatsView() {
         <div className="stat"><div className="stat-label">Sociétaires détenant des parts</div><div className="stat-value tnum">{shares?.data?.length || 0}</div></div>
       </div>
       <div className="hint section-gap">Statistiques calculées quotidiennement à partir des opérations réelles — reprend les indicateurs du tableau de bord et du module Parts sociales, comme prévu dans le cycle comptable (carnet → journaux → grand livre → balance → statistiques).</div>
+    </div>
+  );
+}
+
+function ReconciliationImport({ onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [selected, setSelected] = useState({});
+  const [err, setErr] = useState('');
+  const [reference, setReference] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const onFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true); setErr(''); setResult(null); setSelected({});
+    try { const { data } = await ReconciliationAPI.import(file); setResult(data); }
+    catch (er) { setErr(errorMessage(er)); }
+    finally { setBusy(false); e.target.value = ''; }
+  };
+
+  const toggle = (id) => setSelected((s) => ({ ...s, [id]: !s[id] }));
+  const selectedIds = Object.keys(selected).filter((id) => selected[id]);
+  const selectedAmount = (result?.results || [])
+    .filter((r) => r.matchedTransaction && selected[r.matchedTransaction.id])
+    .reduce((s, r) => s + r.matchedTransaction.amount, 0);
+
+  const proposeTransfer = async () => {
+    if (!reference.trim()) return setErr('Indiquez la référence du virement bancaire réel.');
+    setSaving(true); setErr('');
+    try {
+      await AccountingAPI.recordTransfer({ amount: selectedAmount, reference, transactionIds: selectedIds });
+      setResult(null); setSelected({}); setReference('');
+      onDone();
+    } catch (e) { setErr(errorMessage(e)); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="card section-gap">
+      <div className="card-head"><div className="card-title">Rapprochement — import d'un relevé bancaire (CSV)</div></div>
+      <div className="card-pad">
+        <div className="hint" style={{ marginBottom: 10 }}>Dépose le relevé exporté par la banque (colonnes date + montant). Le système propose des correspondances avec les opérations internes non encore reversées — rien n'est modifié tant que tu ne confirmes pas une remise.</div>
+        <input className="input" type="file" accept=".csv" onChange={onFile} disabled={busy} style={{ maxWidth: 320 }} />
+        {err ? <div className="err-text" style={{ marginTop: 10 }}>{err}</div> : null}
+
+        {result ? (
+          <div style={{ marginTop: 16 }}>
+            <div className="hint" style={{ marginBottom: 8 }}>{result.total} ligne(s) — {result.matchedCount} correspondance(s) trouvée(s), {result.unmatchedCount} sans correspondance.</div>
+            <div className="table-wrap">
+              <table className="tbl">
+                <thead><tr><th></th><th>Ligne relevé</th><th>Montant relevé</th><th>Transaction correspondante</th><th>Membre</th></tr></thead>
+                <tbody>
+                  {result.results.map((r) => (
+                    <tr key={r.row}>
+                      <td>{r.matchedTransaction ? <input type="checkbox" checked={!!selected[r.matchedTransaction.id]} onChange={() => toggle(r.matchedTransaction.id)} /> : null}</td>
+                      <td className="muted">{r.statementLabel || `Ligne ${r.row}`}</td>
+                      <td className="mono">{formatMoney(r.statementAmount)}</td>
+                      <td className="mono">{r.matchedTransaction ? `${r.matchedTransaction.reference} (${formatMoney(r.matchedTransaction.amount)})` : <span className="faint">Aucune</span>}</td>
+                      <td className="muted">{r.matchedTransaction?.memberName || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {selectedIds.length > 0 ? (
+              <div style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+                <div className="field" style={{ marginBottom: 0, flex: 1 }}>
+                  <label className="label">Référence du virement bancaire réel</label>
+                  <input className="input" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Référence figurant sur le relevé" />
+                </div>
+                <button className="btn btn-gold btn-sm" onClick={proposeTransfer} disabled={saving}>
+                  {saving ? '…' : `Proposer la remise (${selectedIds.length} — ${formatMoney(selectedAmount)})`}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

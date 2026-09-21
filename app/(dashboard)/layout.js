@@ -17,6 +17,7 @@ const TITLES = [
   [/^\/cashier/, 'Caisse'],
   [/^\/accounting/, 'Comptabilité'],
   [/^\/share-capital/, 'Parts sociales'],
+  [/^\/credit-products/, 'Produits de crédit'],
   [/^\/bank/, 'Banque'],
   [/^\/consolidation/, 'Consolidation'],
   [/^\/audit-logs/, "Pistes d'audit"],

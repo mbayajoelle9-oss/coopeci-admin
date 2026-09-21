@@ -1,16 +1,18 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { GovernanceAPI, errorMessage } from '@/lib/api';
+import { GovernanceAPI, ReportAPI, errorMessage } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import Loading from '@/components/Loading';
 import Badge from '@/components/Badge';
 
 export default function ConsolidationPage() {
   const [data, setData] = useState(null);
+  const [parB, setParB] = useState(null);
   const [err, setErr] = useState('');
 
   useEffect(() => {
     GovernanceAPI.consolidation().then((r) => setData(r.data)).catch((e) => setErr(errorMessage(e)));
+    ReportAPI.parBuckets().then((r) => setParB(r.data.data)).catch(() => {});
   }, []);
 
   if (err) return <div className="err-text">{err}</div>;
@@ -66,6 +68,14 @@ export default function ConsolidationPage() {
           </div>
         </div>
       </div>
+
+      {parB ? (
+        <div className="grid grid-3 section-gap" style={{ marginBottom: 18 }}>
+          <div className="stat"><div className="stat-label">PAR30 (30+ jours)</div><div className="stat-value tnum">{parB.par30?.ratio}%</div><div className="faint" style={{ fontSize: 11 }}>{formatMoney(parB.par30?.amount || 0)}</div></div>
+          <div className="stat"><div className="stat-label">PAR90 (90+ jours)</div><div className="stat-value tnum">{parB.par90?.ratio}%</div><div className="faint" style={{ fontSize: 11 }}>{formatMoney(parB.par90?.amount || 0)}</div></div>
+          <div className="stat"><div className="stat-label">PAR180 (180+ jours)</div><div className="stat-value tnum">{parB.par180?.ratio}%</div><div className="faint" style={{ fontSize: 11 }}>{formatMoney(parB.par180?.amount || 0)}</div></div>
+        </div>
+      ) : null}
 
       <div className="card">
         <div className="card-head"><div className="card-title">Composition des membres</div></div>

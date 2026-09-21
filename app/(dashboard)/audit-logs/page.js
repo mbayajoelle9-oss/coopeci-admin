@@ -15,6 +15,7 @@ export default function AuditLogsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -28,6 +29,28 @@ export default function AuditLogsPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const { data } = await GovernanceAPI.exportAuditLogs({ module: moduleFilter || undefined });
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'pistes-audit.csv'; a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) { alert(errorMessage(e)); }
+    finally { setExporting(false); }
+  };
+
+  const exportPdf = async () => {
+    setExporting(true);
+    try {
+      const { data } = await GovernanceAPI.exportAuditLogsPdf({ module: moduleFilter || undefined });
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (e) { alert(errorMessage(e)); }
+    finally { setExporting(false); }
+  };
+
   return (
     <div>
       <div className="page-head">
@@ -35,9 +58,13 @@ export default function AuditLogsPage() {
           <div className="page-title">Pistes d'audit</div>
           <div className="page-sub">Historique complet des opérations — qui, quoi, quand</div>
         </div>
-        <select className="select" style={{ width: 200 }} value={moduleFilter} onChange={(e) => { setModuleFilter(e.target.value); setPage(1); }}>
-          {MODULES.map((m) => <option key={m} value={m}>{m || 'Tous les modules'}</option>)}
-        </select>
+        <div className="inline-actions">
+          <select className="select" style={{ width: 200 }} value={moduleFilter} onChange={(e) => { setModuleFilter(e.target.value); setPage(1); }}>
+            {MODULES.map((m) => <option key={m} value={m}>{m || 'Tous les modules'}</option>)}
+          </select>
+          <button className="btn btn-outline btn-sm" onClick={exportCsv} disabled={exporting}>{exporting ? 'Export…' : 'Exporter (CSV)'}</button>
+          <button className="btn btn-outline btn-sm" onClick={exportPdf} disabled={exporting}>{exporting ? 'Export…' : 'Exporter (PDF)'}</button>
+        </div>
       </div>
 
       {err ? <div className="err-text section-gap">{err}</div> : null}

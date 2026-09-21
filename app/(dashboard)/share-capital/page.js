@@ -90,6 +90,8 @@ function ShareMovementModal({ mode, onClose, onSaved }) {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [created, setCreated] = useState(null);
+  const [printing, setPrinting] = useState(false);
   const isSubscribe = mode === 'subscribe';
 
   useEffect(() => {
@@ -107,12 +109,30 @@ function ShareMovementModal({ mode, onClose, onSaved }) {
     try {
       const payload = { memberId, numberOfParts: Number(numberOfParts), note };
       if (isSubscribe) payload.paymentMethod = paymentMethod;
-      if (isSubscribe) await ShareCapitalAPI.subscribe(payload);
-      else await ShareCapitalAPI.reimburse(payload);
-      onSaved();
+      const { data } = isSubscribe ? await ShareCapitalAPI.subscribe(payload) : await ShareCapitalAPI.reimburse(payload);
+      setCreated(data.share);
     } catch (e) { setErr(errorMessage(e)); }
     finally { setBusy(false); }
   };
+
+  const printCertificate = async () => {
+    setPrinting(true);
+    try {
+      const { data } = await ShareCapitalAPI.printCertificate(created._id);
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (e) { alert(errorMessage(e)); }
+    finally { setPrinting(false); }
+  };
+
+  if (created) {
+    return (
+      <Modal title="Mouvement enregistré" onClose={() => onSaved()}
+        footer={<><button className="btn btn-outline" onClick={() => onSaved()}>Fermer</button><button className="btn btn-gold" onClick={printCertificate} disabled={printing}>{printing ? '…' : "Imprimer l'attestation"}</button></>}>
+        <div className="hint">Le mouvement (réf. {created.reference}) a bien été enregistré. Vous pouvez imprimer l'attestation à remettre au sociétaire.</div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal title={isSubscribe ? 'Nouvelle souscription de parts' : 'Remboursement de parts'} onClose={onClose}

@@ -232,6 +232,20 @@ function GeneralLedgerPanel() {
   );
 }
 
+function PrintStatementButton({ type }) {
+  const [printing, setPrinting] = useState(false);
+  const print = async () => {
+    setPrinting(true);
+    try {
+      const { data } = await AccountingAPI.printStatement(type);
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (e) { alert(errorMessage(e)); }
+    finally { setPrinting(false); }
+  };
+  return <button className="btn btn-outline btn-sm" onClick={print} disabled={printing} style={{ marginBottom: 12 }}>{printing ? '…' : 'Imprimer (PDF)'}</button>;
+}
+
 function BilanView() {
   const [data, setData] = useState(null);
   const [err, setErr] = useState('');
@@ -239,7 +253,9 @@ function BilanView() {
   if (err) return <div className="err-text">{err}</div>;
   if (!data) return <Loading />;
   return (
-    <div className="grid grid-2">
+    <div>
+      <PrintStatementButton type="balanceSheet" />
+      <div className="grid grid-2">
       <div className="card">
         <div className="card-head"><div className="card-title">Actif</div></div>
         <div className="table-wrap"><table className="tbl"><tbody>
@@ -258,6 +274,7 @@ function BilanView() {
       <div style={{ gridColumn: '1 / -1' }}>
         <Badge tone={data.equilibre ? 'success' : 'danger'}>{data.equilibre ? '✓ Bilan équilibré (Actif = Passif)' : '⚠ Déséquilibre détecté'}</Badge>
       </div>
+      </div>
     </div>
   );
 }
@@ -269,6 +286,8 @@ function TrialBalanceView() {
   if (err) return <div className="err-text">{err}</div>;
   if (!data) return <Loading />;
   return (
+    <div>
+    <PrintStatementButton type="trialBalance" />
     <div className="card">
       <div className="card-head between"><div className="card-title">Balance générale</div>
         <Badge tone={data.totals.balanced ? 'success' : 'danger'}>{data.totals.balanced ? 'Équilibrée' : 'Déséquilibrée'}</Badge>
@@ -286,6 +305,7 @@ function TrialBalanceView() {
           <tr><td style={{ fontWeight: 800 }}>Total</td><td className="mono" style={{ fontWeight: 800 }}>{formatMoney(data.totals.debit)}</td><td className="mono" style={{ fontWeight: 800 }}>{formatMoney(data.totals.credit)}</td><td /></tr>
         </tbody>
       </table></div>
+    </div>
     </div>
   );
 }
@@ -379,6 +399,8 @@ function IncomeStatementView() {
   if (err) return <div className="err-text">{err}</div>;
   if (!data) return <Loading />;
   return (
+    <div>
+    <PrintStatementButton type="incomeStatement" />
     <div className="grid grid-2">
       <div className="card">
         <div className="card-head"><div className="card-title">Charges</div></div>
@@ -398,6 +420,7 @@ function IncomeStatementView() {
         <div className="stat-label">Résultat (excédent) de la période</div>
         <div className="stat-value tnum">{formatMoney(data.resultat)}</div>
       </div>
+    </div>
     </div>
   );
 }

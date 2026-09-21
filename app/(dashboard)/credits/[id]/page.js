@@ -179,15 +179,36 @@ function DisburseModal({ app, onClose, onDone }) {
   const [method, setMethod] = useState('account');
   const [phone, setPhone] = useState(app.member?.phone || '');
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
+  const [creditId, setCreditId] = useState(null);
+  const [printing, setPrinting] = useState(false);
 
   const submit = async () => {
     setBusy(true); setErr('');
     try {
-      await CreditAPI.disburse(app._id, { method, phone: method === 'mobile_money' ? phone : undefined });
-      onDone();
+      const { data } = await CreditAPI.disburse(app._id, { method, phone: method === 'mobile_money' ? phone : undefined });
+      setCreditId(data.credit._id);
     } catch (e) { setErr(errorMessage(e)); }
     finally { setBusy(false); }
   };
+
+  const printContract = async () => {
+    setPrinting(true);
+    try {
+      const { data } = await CreditAPI.printContract(creditId);
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (e) { alert(errorMessage(e)); }
+    finally { setPrinting(false); }
+  };
+
+  if (creditId) {
+    return (
+      <Modal title="Crédit décaissé" onClose={onDone}
+        footer={<><button className="btn btn-outline" onClick={onDone}>Fermer</button><button className="btn btn-gold" onClick={printContract} disabled={printing}>{printing ? '…' : 'Imprimer le contrat'}</button></>}>
+        <div className="hint">Le décaissement est confirmé et l'échéancier généré. Vous pouvez imprimer le contrat de crédit à faire signer par le membre.</div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal title="Décaisser le crédit" onClose={onClose}

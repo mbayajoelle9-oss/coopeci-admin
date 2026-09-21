@@ -13,6 +13,17 @@ export default function BankPage() {
   const [liquidity, setLiquidity] = useState(null);
   const [err, setErr] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [printing, setPrinting] = useState(false);
+
+  const printStatement = async () => {
+    setPrinting(true);
+    try {
+      const { data } = await AccountingAPI.printBankStatement();
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (e) { alert(errorMessage(e)); }
+    finally { setPrinting(false); }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -32,7 +43,10 @@ export default function BankPage() {
           <div className="page-title">Banque</div>
           <div className="page-sub">Comptes bancaires/Mobile Money déclarés et mouvements consolidés</div>
         </div>
-        <button className="btn btn-gold btn-sm" onClick={() => setShowModal(true)}>+ Déclarer un compte</button>
+        <div className="inline-actions">
+          <button className="btn btn-outline btn-sm" onClick={printStatement} disabled={printing}>{printing ? '…' : 'Imprimer le relevé'}</button>
+          <button className="btn btn-gold btn-sm" onClick={() => setShowModal(true)}>+ Déclarer un compte</button>
+        </div>
       </div>
 
       {err ? <div className="err-text section-gap">{err}</div> : null}

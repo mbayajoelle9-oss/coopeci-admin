@@ -50,11 +50,11 @@ export default function UsersPage() {
               <thead><tr><th>Nom</th><th>E-mail</th><th>Rôle</th><th>Statut</th><th>Créé le</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
               <tbody>
                 {items.map((u) => (
-                  <tr key={u._id}>
+                  <tr key={u._id} style={{ cursor: 'pointer' }} onClick={() => (window.location.href = `/users/${u._id}`)}>
                     <td><div className="row gap" style={{ gap: 10 }}>
                       <div className="avatar" style={{ width: 32, height: 32, fontSize: 11 }}>{initials(u.name)}</div>
                       <div>
-                        <div style={{ fontWeight: 600 }}>{u.name}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--accent, #2450E8)' }}>{u.name}</div>
                         {u.role === 'agent' && (u.commune || u.ville) ? <div className="faint" style={{ fontSize: 11 }}>{[u.commune, u.ville].filter(Boolean).join(', ')}</div> : null}
                       </div>
                     </div></td>
@@ -62,9 +62,10 @@ export default function UsersPage() {
                     <td><Badge tone="info">{roleLabel(u.role)}</Badge></td>
                     <td><Badge tone={u.status === 'active' || !u.status ? 'success' : 'danger'}>{u.status === 'inactive' ? 'Inactif' : 'Actif'}</Badge></td>
                     <td className="muted">{formatDate(u.createdAt)}</td>
-                    <td>
+                    <td onClick={(e) => e.stopPropagation()}>
                       <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
-                        <button className="btn btn-outline btn-sm" onClick={() => setEditing(u)}>Modifier</button>
+                        <a href={`/users/${u._id}`} className="btn btn-outline btn-sm">Fiche / Dossier</a>
+                        <button className="btn btn-outline btn-sm" onClick={() => setEditing(u)}>Accès rapide</button>
                         {u._id !== user?.id ? <button className="btn btn-danger btn-sm" onClick={() => remove(u)}>Désactiver</button> : null}
                       </div>
                     </td>

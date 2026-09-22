@@ -11,6 +11,7 @@ export default function ShareCapitalPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [showModal, setShowModal] = useState(null); // 'subscribe' | 'reimburse' | null
+  const [historyMember, setHistoryMember] = useState(null);
 
   const load = useCallback(async () => {
     try { const { data } = await ShareCapitalAPI.overview(); setData(data); }
@@ -62,7 +63,7 @@ export default function ShareCapitalPage() {
               <thead><tr><th>Membre</th><th>Nombre de parts</th><th>Valeur</th></tr></thead>
               <tbody>
                 {data.data.map((r) => (
-                  <tr key={r.memberId}>
+                  <tr key={r.memberId} style={{ cursor: 'pointer' }} onClick={() => setHistoryMember(r)}>
                     <td>{r.firstName} {r.lastName}<div className="muted mono" style={{ fontSize: 11.5 }}>{r.memberNumber}</div></td>
                     <td className="mono" style={{ fontWeight: 600 }}>{r.totalParts}</td>
                     <td className="mono" style={{ fontWeight: 600 }}>{formatMoney(r.totalValue)}</td>
@@ -72,12 +73,64 @@ export default function ShareCapitalPage() {
             </table>
           </div>
         )}
+        <div className="hint" style={{ padding: '10px 16px 14px' }}>Cliquer sur un membre pour voir son historique et imprimer une attestation.</div>
       </div>
 
       {showModal ? (
         <ShareMovementModal mode={showModal} onClose={() => setShowModal(null)} onSaved={() => { setShowModal(null); load(); }} />
       ) : null}
+      {historyMember ? (
+        <HistoryModal member={historyMember} onClose={() => setHistoryMember(null)} />
+      ) : null}
     </div>
+  );
+}
+
+function HistoryModal({ member, onClose }) {
+  const [history, setHistory] = useState(null);
+  const [err, setErr] = useState('');
+  const [printingId, setPrintingId] = useState(null);
+
+  useEffect(() => {
+    ShareCapitalAPI.memberSummary(member.memberId).then((r) => setHistory(r.data.history || [])).catch((e) => setErr(errorMessage(e)));
+  }, [member.memberId]);
+
+  const print = async (shareId) => {
+    setPrintingId(shareId);
+    try {
+      const { data } = await ShareCapitalAPI.printCertificate(shareId);
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (e) { alert(errorMessage(e)); }
+    finally { setPrintingId(null); }
+  };
+
+  return (
+    <Modal title={`Historique — ${member.firstName} ${member.lastName}`} onClose={onClose} footer={<button className="btn btn-outline" onClick={onClose}>Fermer</button>}>
+      {err ? <div className="err-text">{err}</div> : null}
+      {!history ? <Loading /> : history.length === 0 ? (
+        <EmptyState icon="₵" title="Aucun mouvement" message="Aucune souscription ni remboursement pour ce membre." />
+      ) : (
+        <div className="table-wrap">
+          <table className="tbl">
+            <thead><tr><th>Type</th><th>Parts</th><th>Montant</th><th>Date</th><th style={{ textAlign: 'right' }}>Action</th></tr></thead>
+            <tbody>
+              {history.map((h) => (
+                <tr key={h._id}>
+                  <td>{h.type === 'subscription' ? 'Souscription' : 'Remboursement'}<div className="muted mono" style={{ fontSize: 11 }}>{h.reference}</div></td>
+                  <td className="mono">{h.numberOfParts}</td>
+                  <td className="mono">{formatMoney(h.amount)}</td>
+                  <td className="muted">{new Date(h.createdAt).toLocaleDateString('fr-FR')}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button className="btn btn-outline btn-sm" onClick={() => print(h._id)} disabled={printingId === h._id}>{printingId === h._id ? '…' : 'Imprimer'}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Modal>
   );
 }
 

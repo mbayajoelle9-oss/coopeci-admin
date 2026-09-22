@@ -21,6 +21,8 @@ export default function CreditApplicationPage() {
   const [err, setErr] = useState('');
   const [statusModal, setStatusModal] = useState(false);
   const [disburseModal, setDisburseModal] = useState(false);
+  const [creditId, setCreditId] = useState(null);
+  const [printing, setPrinting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -30,9 +32,22 @@ export default function CreditApplicationPage() {
       if (!data.application?.committeeVotes) {
         try { const v = await CommitteeAPI.votes(id); setVotes(v.data.votes || v.data.data || []); } catch (e) {}
       }
+      if (data.application?.status === 'disbursed') {
+        try { const c = await CreditAPI.byApplication(id); setCreditId(c.data.credit._id); } catch (e) {}
+      }
     } catch (e) { setErr(errorMessage(e)); }
     finally { setLoading(false); }
   }, [id]);
+
+  const printContract = async () => {
+    setPrinting(true);
+    try {
+      const { data } = await CreditAPI.printContract(creditId);
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (e) { alert(errorMessage(e)); }
+    finally { setPrinting(false); }
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -61,12 +76,17 @@ export default function CreditApplicationPage() {
               {m.firstName} {m.lastName} · <span className="mono">{m.memberNumber}</span>{m.phone ? ` · ${m.phone}` : ''}
             </div>
           </div>
-          {decision ? (
-            <div className="inline-actions">
-              {nextStatuses.length ? <button className="btn btn-primary btn-sm" onClick={() => setStatusModal(true)}>Changer le statut</button> : null}
-              {canDisburse ? <button className="btn btn-gold btn-sm" onClick={() => setDisburseModal(true)}>Décaisser</button> : null}
-            </div>
-          ) : null}
+          <div className="inline-actions">
+            {app.status === 'disbursed' && creditId ? (
+              <button className="btn btn-outline btn-sm" onClick={printContract} disabled={printing}>{printing ? '…' : 'Imprimer le contrat'}</button>
+            ) : null}
+            {decision ? (
+              <>
+                {nextStatuses.length ? <button className="btn btn-primary btn-sm" onClick={() => setStatusModal(true)}>Changer le statut</button> : null}
+                {canDisburse ? <button className="btn btn-gold btn-sm" onClick={() => setDisburseModal(true)}>Décaisser</button> : null}
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
 

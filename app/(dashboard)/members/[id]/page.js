@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MembersAPI, errorMessage } from '@/lib/api';
+import { MembersAPI, CreditAPI, ShareCapitalAPI, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { formatMoney, formatDate, statusLabel, statusTone, trxLabel, isCredit, initials, can, formatAddress } from '@/lib/format';
 import Badge from '@/components/Badge';
@@ -21,14 +21,50 @@ export default function MemberDetailPage() {
   const [err, setErr] = useState('');
   const [edit, setEdit] = useState(false);
   const [pinModal, setPinModal] = useState(false);
+  const [credits, setCredits] = useState([]);
+  const [shareCapital, setShareCapital] = useState(null);
+  const [printingFiche, setPrintingFiche] = useState(false);
+  const [printingId, setPrintingId] = useState(null);
 
   const load = useCallback(async () => {
     try {
       const [d, h] = await Promise.all([MembersAPI.detail(id), MembersAPI.history(id)]);
       setMember(d.data.member); setAccounts(d.data.accounts || []); setHistory((h.data.data || []).slice(0, 12));
+      CreditAPI.byMember(id).then((r) => setCredits(r.data.data || [])).catch(() => {});
+      ShareCapitalAPI.memberSummary(id).then((r) => setShareCapital(r.data)).catch(() => {});
     } catch (e) { setErr(errorMessage(e)); }
     finally { setLoading(false); }
   }, [id]);
+
+  const printFiche = async () => {
+    setPrintingFiche(true);
+    try {
+      const { data } = await MembersAPI.fiche(id);
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (e) { alert(errorMessage(e)); }
+    finally { setPrintingFiche(false); }
+  };
+
+  const printCreditContract = async (creditId) => {
+    setPrintingId(creditId);
+    try {
+      const { data } = await CreditAPI.printContract(creditId);
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (e) { alert(errorMessage(e)); }
+    finally { setPrintingId(null); }
+  };
+
+  const printShareCertificate = async (shareId) => {
+    setPrintingId(shareId);
+    try {
+      const { data } = await ShareCapitalAPI.printCertificate(shareId);
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (e) { alert(errorMessage(e)); }
+    finally { setPrintingId(null); }
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -58,6 +94,7 @@ export default function MemberDetailPage() {
           </div>
           {can.memberEdit(user?.role) || can.cashier(user?.role) ? (
             <div className="inline-actions">
+              <button className="btn btn-outline btn-sm" onClick={printFiche} disabled={printingFiche}>{printingFiche ? '…' : 'Imprimer la fiche'}</button>
               {can.memberEdit(user?.role) ? <button className="btn btn-outline btn-sm" onClick={() => setEdit(true)}>Modifier</button> : null}
               {can.cashier(user?.role) ? <button className="btn btn-outline btn-sm" onClick={() => setPinModal(true)}>Réinitialiser le mot de passe</button> : null}
               {can.memberEdit(user?.role) && member.status === 'active' ? <button className="btn btn-danger btn-sm" onClick={deactivate}>Désactiver</button> : null}
@@ -86,6 +123,61 @@ export default function MemberDetailPage() {
             <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>Disponible : {formatMoney(Math.max((a.balance || 0) - (a.blockedBalance || 0), 0), a.currency)}</div>
           </div>
         ))}
+      </div>
+
+      <div className="card section-gap">
+        <div className="card-head"><div className="card-title">Crédits</div></div>
+        <div className="table-wrap">
+          {credits.length === 0 ? (
+            <div className="muted" style={{ padding: 24, textAlign: 'center' }}>Aucun crédit décaissé.</div>
+          ) : (
+            <table className="tbl">
+              <thead><tr><th>N° crédit</th><th>Montant</th><th>Statut</th><th>Décaissé le</th><th style={{ textAlign: 'right' }}>Action</th></tr></thead>
+              <tbody>
+                {credits.map((c) => (
+                  <tr key={c._id}>
+                    <td className="mono" style={{ fontWeight: 600 }}>{c.creditNumber}</td>
+                    <td className="mono">{formatMoney(c.amountDisbursed, c.currency)}</td>
+                    <td><Badge tone={statusTone(c.status)}>{statusLabel(c.status)}</Badge></td>
+                    <td className="muted">{formatDate(c.disbursementDate)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="btn btn-outline btn-sm" onClick={() => printCreditContract(c._id)} disabled={printingId === c._id}>{printingId === c._id ? '…' : 'Imprimer le contrat'}</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      <div className="card section-gap">
+        <div className="card-head between">
+          <div className="card-title">Parts sociales</div>
+          {shareCapital ? <span className="muted mono" style={{ fontSize: 12.5 }}>{shareCapital.totalParts} part(s) — {formatMoney(shareCapital.totalValue)}</span> : null}
+        </div>
+        <div className="table-wrap">
+          {!shareCapital || (shareCapital.history || []).length === 0 ? (
+            <div className="muted" style={{ padding: 24, textAlign: 'center' }}>Aucun mouvement de parts sociales.</div>
+          ) : (
+            <table className="tbl">
+              <thead><tr><th>Type</th><th>Parts</th><th>Montant</th><th>Date</th><th style={{ textAlign: 'right' }}>Action</th></tr></thead>
+              <tbody>
+                {shareCapital.history.map((h) => (
+                  <tr key={h._id}>
+                    <td>{h.type === 'subscription' ? 'Souscription' : 'Remboursement'}<div className="muted mono" style={{ fontSize: 11 }}>{h.reference}</div></td>
+                    <td className="mono">{h.numberOfParts}</td>
+                    <td className="mono">{formatMoney(h.amount)}</td>
+                    <td className="muted">{formatDate(h.createdAt)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="btn btn-outline btn-sm" onClick={() => printShareCertificate(h._id)} disabled={printingId === h._id}>{printingId === h._id ? '…' : 'Imprimer'}</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
 
       <div className="card section-gap">
@@ -145,7 +237,7 @@ function ResetPasswordModal({ member, onClose }) {
         </div>
       ) : (
         <div>
-          <p style={{ margin: 0 }}>Un nouveau code PIN à 4 chiffres sera généré pour <b>{member.firstName} {member.lastName}</b> ({member.phone}), remplaçant l'ancien immédiatement.</p>
+          <p style={{ margin: 0 }}>Un nouveau mot de passe sera généré pour <b>{member.firstName} {member.lastName}</b> ({member.phone}), remplaçant l'ancien immédiatement.</p>
           {err ? <div className="err-text" style={{ marginTop: 10 }}>{err}</div> : null}
         </div>
       )}

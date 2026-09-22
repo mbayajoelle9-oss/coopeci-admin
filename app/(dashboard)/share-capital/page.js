@@ -12,6 +12,21 @@ export default function ShareCapitalPage() {
   const [err, setErr] = useState('');
   const [showModal, setShowModal] = useState(null); // 'subscribe' | 'reimburse' | null
   const [historyMember, setHistoryMember] = useState(null);
+  const [printingMemberId, setPrintingMemberId] = useState(null);
+
+  const quickPrint = async (e, memberId) => {
+    e.stopPropagation();
+    setPrintingMemberId(memberId);
+    try {
+      const { data: summary } = await ShareCapitalAPI.memberSummary(memberId);
+      const latest = (summary.history || [])[0];
+      if (!latest) return alert('Aucun mouvement à imprimer pour ce membre.');
+      const { data } = await ShareCapitalAPI.printCertificate(latest._id);
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (er) { alert(errorMessage(er)); }
+    finally { setPrintingMemberId(null); }
+  };
 
   const load = useCallback(async () => {
     try { const { data } = await ShareCapitalAPI.overview(); setData(data); }
@@ -60,20 +75,25 @@ export default function ShareCapitalPage() {
         ) : (
           <div className="table-wrap">
             <table className="tbl">
-              <thead><tr><th>Membre</th><th>Nombre de parts</th><th>Valeur</th></tr></thead>
+              <thead><tr><th>Membre</th><th>Nombre de parts</th><th>Valeur</th><th style={{ textAlign: 'right' }}>Action</th></tr></thead>
               <tbody>
                 {data.data.map((r) => (
                   <tr key={r.memberId} style={{ cursor: 'pointer' }} onClick={() => setHistoryMember(r)}>
                     <td>{r.firstName} {r.lastName}<div className="muted mono" style={{ fontSize: 11.5 }}>{r.memberNumber}</div></td>
                     <td className="mono" style={{ fontWeight: 600 }}>{r.totalParts}</td>
                     <td className="mono" style={{ fontWeight: 600 }}>{formatMoney(r.totalValue)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="btn btn-outline btn-sm" onClick={(e) => quickPrint(e, r.memberId)} disabled={printingMemberId === r.memberId}>
+                        {printingMemberId === r.memberId ? '…' : 'Imprimer'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        <div className="hint" style={{ padding: '10px 16px 14px' }}>Cliquer sur un membre pour voir son historique et imprimer une attestation.</div>
+        <div className="hint" style={{ padding: '10px 16px 14px' }}>« Imprimer » imprime le dernier mouvement — cliquer sur la ligne pour voir tout l'historique et imprimer un mouvement précis.</div>
       </div>
 
       {showModal ? (

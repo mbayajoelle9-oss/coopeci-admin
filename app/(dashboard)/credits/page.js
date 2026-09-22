@@ -26,6 +26,19 @@ export default function CreditsPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [showNew, setShowNew] = useState(false);
+  const [printingId, setPrintingId] = useState(null);
+
+  const printContract = async (e, applicationId) => {
+    e.stopPropagation();
+    setPrintingId(applicationId);
+    try {
+      const { data: byApp } = await CreditAPI.byApplication(applicationId);
+      const { data } = await CreditAPI.printContract(byApp.credit._id);
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (er) { alert(errorMessage(er)); }
+    finally { setPrintingId(null); }
+  };
 
   const load = useCallback(async (st) => {
     setLoading(true); setErr('');
@@ -61,7 +74,7 @@ export default function CreditsPage() {
             err ? <div className="err-text" style={{ padding: 20 }}>{err}</div> : <EmptyState icon="₵" title="Aucune demande" message="Aucun dossier pour ce filtre." />
           ) : (
             <table className="tbl">
-              <thead><tr><th>Dossier</th><th>Membre</th><th>Montant</th><th>Durée</th><th>Statut</th><th>Créée le</th></tr></thead>
+              <thead><tr><th>Dossier</th><th>Membre</th><th>Montant</th><th>Durée</th><th>Statut</th><th>Créée le</th><th style={{ textAlign: 'right' }}>Action</th></tr></thead>
               <tbody>
                 {items.map((a) => (
                   <tr key={a._id} className="click" onClick={() => router.push(`/credits/${a._id}`)}>
@@ -71,6 +84,11 @@ export default function CreditsPage() {
                     <td>{a.duration} mois</td>
                     <td><Badge tone={statusTone(a.status)}>{statusLabel(a.status)}</Badge></td>
                     <td className="muted">{formatDate(a.createdAt)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      {a.status === 'disbursed' ? (
+                        <button className="btn btn-outline btn-sm" onClick={(e) => printContract(e, a._id)} disabled={printingId === a._id}>{printingId === a._id ? '…' : 'Imprimer'}</button>
+                      ) : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>

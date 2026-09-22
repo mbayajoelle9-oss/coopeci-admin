@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, PieChart, Pie } from 'recharts';
-import { Eye, EyeOff, Users, PiggyBank, Landmark, ShieldAlert, Wallet, TrendingUp, Scale, PieChart as PieIcon, BarChart3, Activity, MapPin, UserCheck } from 'lucide-react';
-import { ReportAPI, errorMessage } from '@/lib/api';
+import { Eye, EyeOff, Users, PiggyBank, Landmark, ShieldAlert, Wallet, TrendingUp, Scale, PieChart as PieIcon, BarChart3, Activity, MapPin, UserCheck, Droplet, Coins, AlertTriangle, Banknote } from 'lucide-react';
+import { ReportAPI, ShareCapitalAPI, CashOpsAPI, AccountingAPI, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { formatMoney, statusLabel, can } from '@/lib/format';
 import QuickStat from '@/components/QuickStat';
@@ -25,6 +25,11 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [par, setPar] = useState(null);
+  const [parB, setParB] = useState(null);
+  const [liquidity, setLiquidity] = useState(null);
+  const [shareCapital, setShareCapital] = useState(null);
+  const [pendingOps, setPendingOps] = useState(null);
+  const [pendingTransfers, setPendingTransfers] = useState(null);
   const [agents, setAgents] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -35,11 +40,21 @@ export default function DashboardPage() {
       try {
         const dashP = ReportAPI.dashboard();
         const parP = can.par(user?.role) ? ReportAPI.par() : null;
+        const parBP = can.par(user?.role) ? ReportAPI.parBuckets() : null;
         const agentsP = can.agentStats(user?.role) ? ReportAPI.agents() : null;
-        const [d, p, a] = await Promise.all([dashP, parP, agentsP]);
+        const liquidityP = can.bank(user?.role) ? ReportAPI.liquidity() : null;
+        const shareCapitalP = can.accounting(user?.role) ? ShareCapitalAPI.overview() : null;
+        const pendingOpsP = can.cashier(user?.role) ? CashOpsAPI.list('pending') : null;
+        const transfersP = can.accounting(user?.role) ? AccountingAPI.transfers() : null;
+        const [d, p, pb, a, liq, sc, ops, tr] = await Promise.all([dashP, parP, parBP, agentsP, liquidityP, shareCapitalP, pendingOpsP, transfersP]);
         setData(d.data.data);
         if (p) setPar(p.data.data);
+        if (pb) setParB(pb.data.data);
         if (a) setAgents(a.data.data);
+        if (liq) setLiquidity(liq.data.data);
+        if (sc) setShareCapital(sc.data);
+        if (ops) setPendingOps((ops.data.data || []).length);
+        if (tr) setPendingTransfers((tr.data.data || []).filter((t) => t.status === 'pending').length);
       } catch (e) { setErr(errorMessage(e)); }
       finally { setLoading(false); }
     })();
@@ -168,6 +183,46 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {(pendingOps > 0 || pendingTransfers > 0) ? (
+        <div className="section-gap" style={{ background: 'linear-gradient(135deg,#B9791F,#F2A93B)', borderRadius: 14, padding: '14px 18px', marginBottom: 18 }}>
+          <div className="row gap" style={{ alignItems: 'center', gap: 10 }}>
+            <AlertTriangle size={18} color="#fff" />
+            <div style={{ color: '#fff', fontSize: 13 }}>
+              {pendingOps > 0 ? <b>{pendingOps} opération{pendingOps > 1 ? 's' : ''} de caisse en attente de validation. </b> : null}
+              {pendingTransfers > 0 ? <b>{pendingTransfers} remise{pendingTransfers > 1 ? 's' : ''} en banque en attente de confirmation.</b> : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {(parB || liquidity || shareCapital) ? (
+        <>
+          <div className="page-head section-gap" style={{ marginBottom: 14 }}>
+            <div className="page-title" style={{ fontSize: 19 }}>Indicateurs réglementaires et financiers</div>
+          </div>
+          <div className="qstats section-gap" style={{ marginBottom: 18, gridTemplateColumns: 'repeat(6, 1fr)' }}>
+            {parB ? (
+              <>
+                <QuickStat icon={ShieldAlert} tone="coral" label="PAR30 (30+ jours)" value={`${parB.par30?.ratio ?? 0}%`} />
+                <QuickStat icon={ShieldAlert} tone="coral" label="PAR90 (90+ jours)" value={`${parB.par90?.ratio ?? 0}%`} />
+                <QuickStat icon={ShieldAlert} tone="coral" label="PAR180 (180+ jours)" value={`${parB.par180?.ratio ?? 0}%`} />
+              </>
+            ) : null}
+            {liquidity ? (
+              <QuickStat icon={Droplet} tone={liquidity.belowThreshold ? 'coral' : 'mint'} label="Ratio de liquidité"
+                value={liquidity.ratio !== null ? `${liquidity.ratio}%` : '—'} />
+            ) : null}
+            {shareCapital ? (
+              <QuickStat icon={Coins} tone="azure" label="Capital (parts sociales)" value={hide ? '••••••' : formatMoney(shareCapital.grandTotal || 0)} />
+            ) : null}
+            {pendingTransfers !== null ? (
+              <QuickStat icon={Banknote} tone={pendingTransfers > 0 ? 'amber' : 'mint'} label="Remises en banque en attente" value={pendingTransfers} />
+            ) : null}
+          </div>
+          <style>{`@media (max-width: 1300px){ .qstats{ grid-template-columns: repeat(3,1fr) !important; } } @media (max-width: 700px){ .qstats{ grid-template-columns: repeat(2,1fr) !important; } }`}</style>
+        </>
+      ) : null}
 
       <div className="grid grid-3 section-gap">
         <div className="card">
